@@ -110,11 +110,11 @@ export default function Game({ config, onGameEnd }: Props) {
     setTimerKey(k => k + 1)
   }, [round])
 
-  const endGame = useCallback((winner: PlayerKey, currentScores: Scores, currentHp: Record<PlayerKey, number>) => {
+  const endGame = useCallback((winner: PlayerKey, currentScores: Scores) => {
     onGameEnd(currentScores, config, winner)
   }, [config, onGameEnd])
 
-  const nextRound = useCallback((newScores: Scores, newHp: Record<PlayerKey, number>) => {
+  const nextRound = useCallback((_newScores: Scores, newHp: Record<PlayerKey, number>) => {
     if (newHp.q <= 0) { startComeback('q'); return }
     if (newHp.p <= 0) { startComeback('p'); return }
 
@@ -144,7 +144,7 @@ export default function Game({ config, onGameEnd }: Props) {
     setTimeout(() => nextRound(newScores, newHp), 1500)
   }, [nextRound])
 
-  const applyComebackCorrect = useCallback((currentScores: Scores, currentHp: Record<PlayerKey, number>, loser: PlayerKey) => {
+  const applyComebackCorrect = useCallback((_currentScores: Scores, currentHp: Record<PlayerKey, number>, loser: PlayerKey) => {
     const next = comebackCount + 1
     setFeedback('correct')
     if (next >= COMEBACK_NEEDED) {
@@ -177,9 +177,9 @@ export default function Game({ config, onGameEnd }: Props) {
     }
   }, [comebackCount, round])
 
-  const applyComebackFail = useCallback((currentScores: Scores, currentHp: Record<PlayerKey, number>, loser: PlayerKey) => {
+  const applyComebackFail = useCallback((currentScores: Scores, loser: PlayerKey) => {
     setFeedback('wrong')
-    setTimeout(() => endGame(other(loser), currentScores, currentHp), 1500)
+    setTimeout(() => endGame(other(loser), currentScores), 1500)
   }, [endGame])
 
   const applyNoScore = useCallback((currentScores: Scores, currentHp: Record<PlayerKey, number>) => {
@@ -195,7 +195,7 @@ export default function Game({ config, onGameEnd }: Props) {
       if (correct) {
         applyComebackCorrect(scores, hp, comebackPlayer)
       } else {
-        applyComebackFail(scores, hp, comebackPlayer)
+        applyComebackFail(scores, comebackPlayer)
       }
       return
     }
@@ -222,7 +222,7 @@ export default function Game({ config, onGameEnd }: Props) {
   const handleTimerExpire = useCallback(() => {
     if (feedback) return
     if (comebackPlayer) {
-      applyComebackFail(scores, hp, comebackPlayer)
+      applyComebackFail(scores, comebackPlayer)
       return
     }
     if (!secondChance && lockedPlayer) {

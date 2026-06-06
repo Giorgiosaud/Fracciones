@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import type { GameConfig, PlayerKey, Scores } from '../lib/types'
-import { recordWin, loadWins, clearWins, type WinRecord } from '../lib/wins'
+import { recordWin, clearWins, type WinRecord } from '../lib/wins'
 
 interface Props {
   scores: Scores
