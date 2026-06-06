@@ -296,10 +296,11 @@ export default function Game({ config, onGameEnd }: Props) {
     setComebackPlayer(loser)
     setComebackCount(0)
     sfx.playComebackActivate()
+    bgm.setDanger(true)
     setShowComebackEntrance(true)
     setTimeout(() => setShowComebackEntrance(false), 2500)
     resetRound(round)
-  }, [round, resetRound, sfx])
+  }, [round, resetRound, sfx, bgm])
 
   const endGame = useCallback((winner: PlayerKey, currentScores: Scores) => {
     onGameEnd(currentScores, config, winner)
@@ -327,6 +328,7 @@ export default function Game({ config, onGameEnd }: Props) {
     setFeedback('correct')
     sfx.playCorrect()
     if (newStreak[scorer] >= 3) sfx.playStreakHit(newStreak[scorer])
+    bgm.setStreak(newStreak[scorer])
     fireFlash('#00E676')
     fireConfetti()
     const multiplierLabel = newStreak[scorer] >= 3 ? `×${(1 + (newStreak[scorer] - 2) * 0.1).toFixed(1)} ` : ''
@@ -334,7 +336,7 @@ export default function Game({ config, onGameEnd }: Props) {
     shakePlayer(other(scorer))
     sfx.playDamage()
     setTimeout(() => nextRound(newScores, newHp), 1500)
-  }, [nextRound, sfx, fireFlash, fireConfetti, fireDamage, shakePlayer])
+  }, [nextRound, sfx, bgm, fireFlash, fireConfetti, fireDamage, shakePlayer])
 
   const applyComebackCorrect = useCallback((currentHp: Record<PlayerKey, number>, loser: PlayerKey) => {
     const next = comebackCount + 1
@@ -345,6 +347,8 @@ export default function Game({ config, onGameEnd }: Props) {
       setComebackPlayer(null)
       setComebackCount(0)
       sfx.playComebackSuccess()
+      bgm.setDanger(false)
+      bgm.setStreak(0)
       fireFlash('#FFD700')
       fireConfetti()
       confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 }, colors: ['#FFD700', '#FF6B00', '#ffffff'] })
@@ -357,7 +361,7 @@ export default function Game({ config, onGameEnd }: Props) {
       fireFlash('rgba(255,59,59,0.4)')
       setTimeout(() => resetRound(round), 1500)
     }
-  }, [comebackCount, round, resetRound, sfx, fireFlash, fireConfetti])
+  }, [comebackCount, round, resetRound, sfx, bgm, fireFlash, fireConfetti])
 
   const applyComebackFail = useCallback((currentScores: Scores, loser: PlayerKey) => {
     setFeedback('wrong')
