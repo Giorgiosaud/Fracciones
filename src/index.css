@@ -1,3 +1,54 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --p1: #1D9BF0;
+  --p2: #FF3B3B;
+  --gold: #FFD700;
+  --bg: #0D0D1A;
+  --surface: #16162A;
+  --surface2: #1E1E38;
+  --border: #000;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  overflow-x: hidden;
+}
+
+/* Dot grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root { position: relative; z-index: 1; }
+
+/* Pokémon-style chunky shadows */
+.card-3d {
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0px #000;
+}
+
+.btn-3d {
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0px #000;
+  transition: transform 80ms, box-shadow 80ms;
+}
+.btn-3d:active {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0px #000;
+}
+
+/* Bangers for display text */
+.font-display { font-family: 'Bangers', cursive; letter-spacing: 0.05em; }

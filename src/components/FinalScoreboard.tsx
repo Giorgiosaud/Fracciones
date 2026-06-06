@@ -21,7 +21,7 @@ function useConfetti(canvas: HTMLCanvasElement | null) {
       y: Math.random() * -canvas.height,
       r: Math.random() * 8 + 4,
       d: Math.random() * 2 + 1,
-      color: ['#6366f1', '#ec4899', '#f59e0b', '#22c55e', '#06b6d4'][Math.floor(Math.random() * 5)],
+      color: ['#1D9BF0', '#FF3B3B', '#FFD700', '#00E676', '#FF9F0A'][Math.floor(Math.random() * 5)],
       tiltAngle: Math.random() * Math.PI * 2,
     }))
     let raf: number
@@ -46,27 +46,30 @@ function useConfetti(canvas: HTMLCanvasElement | null) {
 function WinBoard({ records, onClear }: { records: WinRecord[]; onClear: () => void }) {
   const medals = ['🥇', '🥈', '🥉']
   return (
-    <div className="bg-slate-800 rounded-2xl p-6 w-72 border border-slate-700">
+    <div
+      className="card-3d rounded-2xl p-6 w-72"
+      style={{ background: 'var(--surface)' }}
+    >
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-white font-black text-lg uppercase tracking-wide">🏆 Tabla de Victorias</h2>
+        <h2 className="font-display text-[#FFD700] text-xl tracking-widest drop-shadow-[1px_1px_0_#000]">🏆 VICTORIAS</h2>
         <button
           onClick={onClear}
-          className="text-slate-500 hover:text-slate-300 text-xs transition-colors"
+          className="font-display text-white/30 hover:text-white/60 text-xs tracking-widest transition-colors"
         >
-          Borrar
+          BORRAR
         </button>
       </div>
       {records.length === 0 ? (
-        <p className="text-slate-500 text-sm text-center">Sin victorias aún</p>
+        <p className="text-white/30 text-sm text-center font-display tracking-widest">SIN VICTORIAS AÚN</p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-3">
           {records.slice(0, 5).map((r, i) => (
             <li key={r.name} className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-lg">{medals[i] ?? '🎖️'}</span>
-                <span className="text-white font-semibold text-sm">{r.name}</span>
+                <span className="text-white font-bold text-sm">{r.name}</span>
               </div>
-              <span className="text-yellow-400 font-black">{r.wins} {r.wins === 1 ? 'victoria' : 'victorias'}</span>
+              <span className="font-display text-[#FFD700] drop-shadow-[1px_1px_0_#000]">{r.wins} {r.wins === 1 ? 'victoria' : 'victorias'}</span>
             </li>
           ))}
         </ul>
@@ -80,7 +83,7 @@ export default function FinalScoreboard({ scores, config, winner, onReplay }: Pr
   useConfetti(canvasRef.current)
 
   const winnerName = winner === 'q' ? config.player1Name : config.player2Name
-  const winnerColor = winner === 'q' ? 'text-indigo-400' : 'text-pink-400'
+  const winnerColor = winner === 'q' ? '#1D9BF0' : '#FF3B3B'
 
   const [records, setRecords] = useState<WinRecord[]>([])
 
@@ -95,7 +98,7 @@ export default function FinalScoreboard({ scores, config, winner, onReplay }: Pr
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center gap-8 relative overflow-hidden p-8">
+    <div className="min-h-screen text-white flex flex-col items-center justify-center gap-8 relative overflow-hidden p-8" style={{ background: 'var(--bg)' }}>
       <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
 
       <motion.div
@@ -105,26 +108,32 @@ export default function FinalScoreboard({ scores, config, winner, onReplay }: Pr
         className="text-center z-10"
       >
         <div className="text-6xl mb-2">🏆</div>
-        <div className="text-2xl text-slate-400 mb-1">¡Ganador!</div>
-        <div className={`text-6xl font-black ${winnerColor}`}>{winnerName}</div>
+        <div className="font-display text-2xl text-white/40 tracking-widest mb-1">¡GANADOR!</div>
+        <div
+          className="font-display text-7xl drop-shadow-[4px_4px_0_#000]"
+          style={{ color: winnerColor, textShadow: `0 0 30px ${winnerColor}` }}
+        >
+          {winnerName}
+        </div>
       </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="flex gap-12 z-10 bg-slate-800 rounded-2xl px-10 py-6 border border-slate-700"
+        className="flex gap-12 z-10 card-3d rounded-2xl px-10 py-6"
+        style={{ background: 'var(--surface)' }}
       >
         <div className="text-center">
-          <div className="text-slate-400 text-sm mb-1">{config.player1Name}</div>
-          <div className="text-5xl font-black text-indigo-400">{scores.q}</div>
-          <div className="text-slate-500 text-xs mt-1">puntos</div>
+          <div className="font-display text-white/40 text-sm tracking-widest mb-1">{config.player1Name}</div>
+          <div className="font-display text-6xl drop-shadow-[2px_2px_0_#000]" style={{ color: '#1D9BF0', textShadow: '0 0 12px #1D9BF0' }}>{scores.q}</div>
+          <div className="font-display text-white/20 text-xs tracking-widest mt-1">PUNTOS</div>
         </div>
-        <div className="text-slate-600 text-4xl self-center">vs</div>
+        <div className="font-display text-[#FFD700] text-4xl self-center drop-shadow-[2px_2px_0_#000]">VS</div>
         <div className="text-center">
-          <div className="text-slate-400 text-sm mb-1">{config.player2Name}</div>
-          <div className="text-5xl font-black text-pink-400">{scores.p}</div>
-          <div className="text-slate-500 text-xs mt-1">puntos</div>
+          <div className="font-display text-white/40 text-sm tracking-widest mb-1">{config.player2Name}</div>
+          <div className="font-display text-6xl drop-shadow-[2px_2px_0_#000]" style={{ color: '#FF3B3B', textShadow: '0 0 12px #FF3B3B' }}>{scores.p}</div>
+          <div className="font-display text-white/20 text-xs tracking-widest mt-1">PUNTOS</div>
         </div>
       </motion.div>
 
@@ -141,10 +150,13 @@ export default function FinalScoreboard({ scores, config, winner, onReplay }: Pr
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         onClick={onReplay}
-        className="z-10 bg-indigo-500 hover:bg-indigo-400 text-white font-black text-xl px-10 py-4 rounded-2xl transition-all shadow-lg shadow-indigo-500/40 active:scale-95"
+        className="z-10 btn-3d font-display text-black text-2xl px-12 py-4 rounded-2xl tracking-widest"
+        style={{ background: '#FFD700' }}
       >
-        Jugar de nuevo
+        ¡JUGAR DE NUEVO!
       </motion.button>
     </div>
   )

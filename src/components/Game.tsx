@@ -4,7 +4,6 @@ import type { Exercise, GameConfig, PlayerKey, Scores } from '../lib/types'
 import { generateExercise, validateAnswer } from '../lib/exercises'
 import { getRandomJoke } from '../lib/jokes'
 import FractionVisualizer from './FractionVisualizer'
-import BuzzerIndicator from './BuzzerIndicator'
 import Timer from './Timer'
 import HealthBar from './HealthBar'
 
@@ -34,7 +33,7 @@ function FractionDisplay({ frac }: { frac: { numerator: number; denominator: num
 function renderExercise(ex: Exercise, selectedOpt: string | null = null) {
   if (ex.type === 'compare') {
     const symbol = selectedOpt ?? '?'
-    const symbolColor = selectedOpt ? 'text-yellow-300' : 'text-slate-400'
+    const symbolColor = selectedOpt ? 'text-[#FFD700]' : 'text-white/40'
     return (
       <div className="flex items-center gap-6 text-4xl font-black">
         <FractionDisplay frac={ex.fractionA} />
@@ -47,8 +46,8 @@ function renderExercise(ex: Exercise, selectedOpt: string | null = null) {
     return (
       <div className="flex items-center gap-4 text-4xl font-black">
         <FractionDisplay frac={ex.fractionA} />
-        <span className="text-slate-400">=</span>
-        <span className="text-indigo-400 text-5xl">?</span>
+        <span className="text-white/40">=</span>
+        <span className="text-[#FFD700] text-5xl">?</span>
       </div>
     )
   }
@@ -56,9 +55,9 @@ function renderExercise(ex: Exercise, selectedOpt: string | null = null) {
     return (
       <div className="flex items-center gap-4 text-4xl font-black">
         <FractionDisplay frac={ex.fractionA} />
-        <span className="text-slate-400">=</span>
+        <span className="text-white/40">=</span>
         <div className="inline-flex flex-col items-center leading-none">
-          <span className="text-indigo-400">?</span>
+          <span className="text-[#FFD700]">?</span>
           <span className="w-full border-t-2 border-white my-1" />
           <span>{ex.targetDenominator}</span>
         </div>
@@ -68,8 +67,8 @@ function renderExercise(ex: Exercise, selectedOpt: string | null = null) {
   return (
     <div className="flex items-center gap-4 text-4xl font-black">
       <FractionDisplay frac={ex.fractionA} />
-      <span className="text-slate-400">=</span>
-      <span className="text-indigo-400 text-3xl">? y ?/?</span>
+      <span className="text-white/40">=</span>
+      <span className="text-[#FFD700] text-3xl">? y ?/?</span>
     </div>
   )
 }
@@ -120,15 +119,14 @@ interface OptionGridProps {
   options: string[]
   locked: boolean
   onSelect: (opt: string) => void
-  wrongSelections: string[]   // options already chosen wrong (by either player)
+  wrongSelections: string[]
   correctAnswer: string
-  revealCorrect: boolean      // only true after both players responded
-  color: 'indigo' | 'pink'
+  revealCorrect: boolean
+  color: 'blue' | 'red'
 }
 
 function OptionGrid({ options, locked, onSelect, wrongSelections, correctAnswer, revealCorrect, color }: OptionGridProps) {
-  const accentBorder = color === 'indigo' ? 'border-indigo-400' : 'border-pink-400'
-  const accentBg = color === 'indigo' ? 'bg-indigo-500/10 text-indigo-200' : 'bg-pink-500/10 text-pink-200'
+  const accentColor = color === 'blue' ? '#1D9BF0' : '#FF3B3B'
   const canClick = locked && !revealCorrect
 
   return (
@@ -137,23 +135,27 @@ function OptionGrid({ options, locked, onSelect, wrongSelections, correctAnswer,
         const isWrong = wrongSelections.includes(opt)
         const isCorrect = revealCorrect && opt === correctAnswer
 
-        let cls: string
+        let style: React.CSSProperties
+        let extraCls = ''
+
         if (isCorrect) {
-          cls = 'border-green-500 bg-green-500/20 text-green-200 cursor-default'
+          style = { border: '3px solid #00E676', background: 'rgba(0,230,118,0.15)', color: '#00E676', boxShadow: '0 0 12px #00E676, 3px 3px 0 #000' }
         } else if (isWrong) {
-          cls = 'border-red-500/60 bg-red-900/20 text-red-400/70 cursor-default line-through'
+          style = { border: '3px solid rgba(255,59,59,0.5)', background: 'rgba(255,59,59,0.08)', color: 'rgba(255,59,59,0.5)', boxShadow: '3px 3px 0 #000' }
+          extraCls = 'line-through'
         } else if (canClick) {
-          cls = `border-slate-600 bg-slate-800 text-white hover:${accentBg} hover:${accentBorder} cursor-pointer`
+          style = { border: `3px solid ${accentColor}`, background: '#16162A', color: 'white', boxShadow: '3px 3px 0 #000', cursor: 'pointer' }
         } else {
-          cls = 'border-slate-700 bg-slate-800/50 text-slate-500 cursor-default'
+          style = { border: '3px solid #2a2a4a', background: '#16162A', color: '#444', boxShadow: '3px 3px 0 #000' }
         }
 
         return (
           <motion.button
             key={opt}
-            whileTap={canClick && !isWrong ? { scale: 0.95 } : {}}
+            whileTap={canClick && !isWrong ? { scale: 0.93, x: 2, y: 2 } : {}}
             onClick={() => canClick && !isWrong && onSelect(opt)}
-            className={`border-2 rounded-xl px-3 py-3 flex items-center justify-center min-h-[56px] transition-all ${cls}`}
+            style={style}
+            className={`rounded-xl px-3 py-3 flex items-center justify-center min-h-[56px] transition-colors font-display ${extraCls}`}
             title={locked ? `Opción ${i + 1}` : ''}
           >
             <OptionLabel text={opt} />
@@ -207,14 +209,24 @@ export default function Game({ config, onGameEnd }: Props) {
   const [showHint, setShowHint] = useState(false)
   const [joke, setJoke] = useState<{ setup: string; punchline: string } | null>(null)
   const jokeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const jokeRoundRef = useRef<number>(0)
 
   const other = (p: PlayerKey): PlayerKey => p === 'q' ? 'p' : 'q'
 
   const newExercise = (r: number) => generateExercise(Math.ceil(r / 3))
 
+  const clearRoundState = () => {
+    setSelectedOption(null)
+    setWrongSelections([])
+    setRevealCorrect(false)
+    setFeedback(null)
+    setShowHint(false)
+    setTimerKey(k => k + 1)
+  }
+
   const showJokeThenReset = useCallback((r: number) => {
-    // Show a joke every 3 rounds
     if (r % 3 === 0) {
+      jokeRoundRef.current = r
       setJoke(getRandomJoke())
       jokeTimer.current = setTimeout(() => {
         setJoke(null)
@@ -222,20 +234,14 @@ export default function Game({ config, onGameEnd }: Props) {
         setPhase('waiting')
         setLockedPlayer(null)
         setSecondChance(false)
-        setSelectedOption(null)
-        setFeedback(null)
-        setShowHint(false)
-        setTimerKey(k => k + 1)
-      }, 4000)
+        clearRoundState()
+      }, 15000)
     } else {
       setExercise(newExercise(r))
       setPhase('waiting')
       setLockedPlayer(null)
       setSecondChance(false)
-      setSelectedOption(null)
-      setFeedback(null)
-      setShowHint(false)
-      setTimerKey(k => k + 1)
+      clearRoundState()
     }
   }, [])
 
@@ -246,12 +252,7 @@ export default function Game({ config, onGameEnd }: Props) {
     setPhase('waiting')
     setLockedPlayer(null)
     setSecondChance(false)
-    setSelectedOption(null)
-    setWrongSelections([])
-    setRevealCorrect(false)
-    setFeedback(null)
-    setShowHint(false)
-    setTimerKey(k => k + 1)
+    clearRoundState()
   }, [])
 
   const startComeback = useCallback((loser: PlayerKey) => {
@@ -427,25 +428,61 @@ export default function Game({ config, onGameEnd }: Props) {
     return () => clearTimeout(id)
   }, [phase, timerKey, feedback, selectedOption])
 
+  const closeJoke = useCallback(() => {
+    if (jokeTimer.current) clearTimeout(jokeTimer.current)
+    const r = jokeRoundRef.current
+    setJoke(null)
+    setExercise(newExercise(r))
+    setPhase('waiting')
+    setLockedPlayer(null)
+    setSecondChance(false)
+    clearRoundState()
+  }, [])
+
   const p1 = config.player1Name
   const p2 = config.player2Name
   const inComeback = comebackPlayer !== null
 
+  const keyBadge = (key: 'Q' | 'P') => {
+    const pk: PlayerKey = key.toLowerCase() as PlayerKey
+    const color = key === 'Q' ? '#1D9BF0' : '#FF3B3B'
+    const isLocked = lockedPlayer === pk
+    const isActive = phase === 'waiting' && (!inComeback || comebackPlayer === pk)
+    return (
+      <motion.div
+        animate={isActive && !isLocked ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+        transition={{ repeat: isActive && !isLocked ? Infinity : 0, duration: 1, ease: 'easeInOut' }}
+        style={{
+          background: isLocked ? color : 'transparent',
+          border: `3px solid ${color}`,
+          boxShadow: isLocked ? `0 0 14px ${color}, 3px 3px 0 #000` : '3px 3px 0 #000',
+          color: isLocked ? '#FFD700' : color,
+          opacity: inComeback && comebackPlayer !== pk ? 0.3 : 1,
+        }}
+        className="w-10 h-10 rounded-xl flex items-center justify-center font-display text-xl select-none flex-shrink-0"
+      >
+        {key}
+      </motion.div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col">
-      {/* Health bar header */}
-      <div className="flex justify-between items-center px-6 py-4 bg-slate-950 border-b border-slate-800">
+    <div className="h-screen overflow-hidden text-white flex flex-col" style={{ background: 'var(--bg)' }}>
+      {/* Header: key badge | health bar | round | health bar | key badge */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10 flex-shrink-0" style={{ background: '#0a0a15' }}>
+        {keyBadge('Q')}
         <HealthBar hp={hp.q} maxHp={MAX_HP} side="left" name={p1} streak={streak.q} />
-        <div className="flex flex-col items-center gap-1 px-4">
-          <div className="text-slate-500 text-xs uppercase tracking-widest">Ronda</div>
-          <div className="text-3xl font-black text-yellow-400">{round}</div>
-          <div className="flex gap-4 text-lg font-black">
-            <span className="text-indigo-400">{scores.q}</span>
-            <span className="text-slate-600">vs</span>
-            <span className="text-pink-400">{scores.p}</span>
+        <div className="flex flex-col items-center gap-0.5 px-3 flex-shrink-0">
+          <div className="font-display text-[10px] text-white/30 tracking-widest">RONDA</div>
+          <div className="font-display text-3xl text-[#FFD700] drop-shadow-[2px_2px_0_#000] leading-none">{round}</div>
+          <div className="flex gap-2 font-display text-base leading-none mt-0.5">
+            <span style={{ color: '#1D9BF0', textShadow: '0 0 6px #1D9BF0' }}>{scores.q}</span>
+            <span className="text-white/20">-</span>
+            <span style={{ color: '#FF3B3B', textShadow: '0 0 6px #FF3B3B' }}>{scores.p}</span>
           </div>
         </div>
         <HealthBar hp={hp.p} maxHp={MAX_HP} side="right" name={p2} streak={streak.p} />
+        {keyBadge('P')}
       </div>
 
       {/* Comeback banner */}
@@ -454,41 +491,45 @@ export default function Game({ config, onGameEnd }: Props) {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-red-900/60 border-b border-red-700 px-6 py-2 flex items-center justify-center gap-3"
+            style={{ background: 'rgba(255,59,59,0.15)', borderBottom: '2px solid rgba(255,59,59,0.4)' }}
+            className="flex-shrink-0 px-6 py-1.5 flex items-center justify-center gap-3"
           >
-            <span className="text-red-300 font-black text-sm uppercase tracking-widest">
-              🔥 COMEBACK — {comebackPlayer === 'q' ? p1 : p2}
-            </span>
-            <span className="text-red-400 text-sm">
-              {comebackCount}/{COMEBACK_NEEDED} seguidas para sobrevivir
-            </span>
+            <span className="font-display text-[#FF3B3B] text-xs tracking-widest">🔥 COMEBACK — {comebackPlayer === 'q' ? p1 : p2}</span>
             <div className="flex gap-1">
               {Array.from({ length: COMEBACK_NEEDED }, (_, i) => (
-                <div key={i} className={`w-4 h-4 rounded-full border-2 ${i < comebackCount ? 'bg-yellow-400 border-yellow-400' : 'border-red-500'}`} />
+                <div key={i} className="w-3 h-3 rounded-full" style={{
+                  background: i < comebackCount ? '#FFD700' : 'transparent',
+                  border: `2px solid ${i < comebackCount ? '#FFD700' : '#FF3B3B'}`,
+                  boxShadow: i < comebackCount ? '0 0 6px #FFD700' : 'none',
+                }} />
               ))}
             </div>
+            <span className="text-white/40 text-xs">{comebackCount}/{COMEBACK_NEEDED} para sobrevivir</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Exercise */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4 relative">
+      {/* Exercise area */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 relative min-h-0">
         <AnimatePresence mode="wait">
           <motion.div
             key={`${round}-${comebackCount}`}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="flex flex-col items-center gap-4 w-full max-w-2xl"
+            className="flex flex-col items-center gap-3 w-full max-w-2xl"
           >
-            <p className="text-slate-500 text-sm">{exerciseLabel(exercise)}</p>
-            <div className="bg-slate-800 rounded-3xl px-12 py-8 shadow-xl border border-slate-700">
+            <p className="font-display text-white/40 text-xs tracking-widest">{exerciseLabel(exercise)}</p>
+            <div
+              className="rounded-3xl px-10 py-6"
+              style={{ background: 'var(--surface)', border: '3px solid #000', boxShadow: '6px 6px 0 #000' }}
+            >
               {renderExercise(exercise, exercise.type === 'compare' ? selectedOption : null)}
             </div>
-            <FractionVisualizer fraction={exercise.fractionA} color="#6366f1" />
+            <FractionVisualizer fraction={exercise.fractionA} color="#FFD700" />
 
-            {/* Options — always visible, interactive only when locked */}
-            <div className="flex flex-col items-center gap-2 w-full">
+            {/* Options */}
+            <div className="flex flex-col items-center gap-1.5 w-full">
               <OptionGrid
                 options={exercise.options}
                 locked={phase === 'locked' && !!lockedPlayer}
@@ -496,13 +537,21 @@ export default function Game({ config, onGameEnd }: Props) {
                 wrongSelections={wrongSelections}
                 correctAnswer={String(exercise.answer)}
                 revealCorrect={revealCorrect}
-                color={lockedPlayer === 'q' ? 'indigo' : 'pink'}
+                color={lockedPlayer === 'q' ? 'blue' : 'red'}
               />
-              {phase === 'locked' && !feedback && (
-                <p className="text-slate-600 text-xs">Teclas 1–{exercise.options.length} para seleccionar</p>
+              {/* Timer bar below options when locked */}
+              {phase === 'locked' && lockedPlayer && (
+                <div className="mt-1">
+                  <Timer
+                    key={timerKey}
+                    seconds={inComeback ? 10 : secondChance ? 5 : 10}
+                    onExpire={handleTimerExpire}
+                    running={phase === 'locked' && !feedback}
+                  />
+                </div>
               )}
               {phase === 'waiting' && (
-                <p className="text-slate-600 text-xs">Presiona Q o P para responder</p>
+                <p className="font-display text-white/20 text-xs tracking-widest">PRESIONA Q O P PARA RESPONDER</p>
               )}
               <AnimatePresence>
                 {showHint && !feedback && (
@@ -510,7 +559,8 @@ export default function Game({ config, onGameEnd }: Props) {
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="mt-1 px-4 py-2 bg-yellow-900/40 border border-yellow-600/40 rounded-xl text-yellow-300 text-sm text-center max-w-sm"
+                    style={{ background: 'rgba(255,215,0,0.1)', border: '2px solid rgba(255,215,0,0.4)', boxShadow: '3px 3px 0 #000' }}
+                    className="px-4 py-2 rounded-xl text-[#FFD700] text-sm text-center max-w-sm"
                   >
                     💡 {buildHint(exercise)}
                   </motion.div>
@@ -527,68 +577,40 @@ export default function Game({ config, onGameEnd }: Props) {
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.5, opacity: 0 }}
-              className={`absolute text-9xl pointer-events-none ${feedback === 'correct' ? 'text-green-400' : 'text-red-400'}`}
+              style={{ color: feedback === 'correct' ? '#00E676' : '#FF3B3B', textShadow: `0 0 40px ${feedback === 'correct' ? '#00E676' : '#FF3B3B'}` }}
+              className="absolute font-display text-9xl pointer-events-none drop-shadow-[4px_4px_0_#000]"
             >
               {feedback === 'correct' ? '✓' : '✗'}
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Joke overlay between rounds */}
+        {/* Joke overlay */}
         <AnimatePresence>
           {joke && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="absolute inset-0 flex items-center justify-center bg-slate-900/95 z-20"
+              className="absolute inset-0 flex items-center justify-center z-20"
+              style={{ background: 'rgba(13,13,26,0.96)' }}
             >
-              <div className="text-center max-w-sm px-6">
+              <div className="text-center max-w-sm px-8 py-8 rounded-3xl card-3d" style={{ background: 'var(--surface)' }}>
                 <div className="text-4xl mb-4">😄</div>
-                <p className="text-white text-lg font-semibold mb-3">{joke.setup}</p>
-                <p className="text-yellow-300 text-xl font-black">{joke.punchline}</p>
-                <p className="text-slate-600 text-xs mt-4">Siguiente ronda en un momento...</p>
+                <p className="text-white text-lg font-semibold mb-4">{joke.setup}</p>
+                <p className="font-display text-[#FFD700] text-2xl drop-shadow-[2px_2px_0_#000]">{joke.punchline}</p>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={closeJoke}
+                  className="mt-6 btn-3d font-display text-black text-lg px-8 py-2 rounded-xl tracking-widest"
+                  style={{ background: '#FFD700' }}
+                >
+                  ¡SIGUIENTE!
+                </motion.button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
-
-      {/* Buzzer row */}
-      <div className="flex justify-between items-center px-6 pb-6 bg-slate-950 border-t border-slate-800 pt-4 gap-4">
-        {/* Player 1 */}
-        <div className={`flex flex-col items-start gap-3 flex-1 rounded-2xl p-2 transition-all duration-300 ${lockedPlayer === 'q' ? 'bg-indigo-500/10 ring-2 ring-indigo-500/50' : ''}`}>
-          <BuzzerIndicator
-            keyLabel="Q"
-            playerName={p1}
-            active={phase === 'waiting' && (!inComeback || comebackPlayer === 'q')}
-            locked={lockedPlayer === 'q'}
-            side="left"
-          />
-        </div>
-
-        {/* Timer center */}
-        <div className="flex-shrink-0">
-          {phase === 'locked' && lockedPlayer && (
-            <Timer
-              key={timerKey}
-              seconds={inComeback ? 10 : secondChance ? 5 : 10}
-              onExpire={handleTimerExpire}
-              running={phase === 'locked' && !feedback}
-            />
-          )}
-        </div>
-
-        {/* Player 2 */}
-        <div className={`flex flex-col items-end gap-3 flex-1 rounded-2xl p-2 transition-all duration-300 ${lockedPlayer === 'p' ? 'bg-pink-500/10 ring-2 ring-pink-500/50' : ''}`}>
-          <BuzzerIndicator
-            keyLabel="P"
-            playerName={p2}
-            active={phase === 'waiting' && (!inComeback || comebackPlayer === 'p')}
-            locked={lockedPlayer === 'p'}
-            side="right"
-          />
-        </div>
       </div>
     </div>
   )

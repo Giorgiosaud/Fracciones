@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import type { GameConfig } from '../lib/types'
 
 interface Props {
@@ -16,67 +17,101 @@ export default function Home({ onStart }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-8 gap-10">
-      <div className="text-center">
-        <h1 className="text-5xl font-black text-indigo-400 mb-2">Fracciones VS</h1>
-        <p className="text-slate-400">¡Presiona tu tecla primero y responde correcto!</p>
-      </div>
+    <div className="min-h-screen flex flex-col items-center justify-center p-8 gap-8">
 
-      <div className="flex gap-8 w-full max-w-lg">
+      {/* Title */}
+      <motion.div
+        initial={{ y: -40, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', bounce: 0.5 }}
+        className="text-center"
+      >
+        <h1 className="font-display text-8xl text-[#FFD700] drop-shadow-[4px_4px_0px_#000] tracking-wider leading-none">
+          FRACCIONES
+        </h1>
+        <h2 className="font-display text-6xl text-white drop-shadow-[3px_3px_0px_#000] tracking-widest leading-none mt-1">
+          VS
+        </h2>
+      </motion.div>
+
+      {/* Players */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="flex gap-6 w-full max-w-xl"
+      >
+        {/* Player 1 */}
         <div className="flex-1 flex flex-col gap-2">
-          <label className="text-sm text-slate-400 font-medium">
-            Jugador 1 <span className="text-indigo-400 font-bold">[Q]</span>
-          </label>
+          <div className="bg-[#1D9BF0] rounded-xl px-4 py-1 text-center card-3d">
+            <span className="font-display text-2xl text-white tracking-widest">TECLA Q</span>
+          </div>
           <input
-            className="bg-slate-800 rounded-xl px-4 py-3 text-white text-center text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="bg-[#16162A] rounded-xl px-4 py-3 text-white text-center text-xl font-black focus:outline-none border-3 border-transparent focus:border-[#1D9BF0] transition-colors"
+            style={{ border: '3px solid #1D9BF0', boxShadow: '3px 3px 0 #000' }}
             value={player1Name}
             onChange={e => setPlayer1Name(e.target.value)}
             maxLength={12}
           />
         </div>
+
+        <div className="flex items-center font-display text-4xl text-[#FFD700] drop-shadow-[2px_2px_0_#000] pt-6">VS</div>
+
+        {/* Player 2 */}
         <div className="flex-1 flex flex-col gap-2">
-          <label className="text-sm text-slate-400 font-medium text-right block">
-            Jugador 2 <span className="text-pink-400 font-bold">[P]</span>
-          </label>
+          <div className="bg-[#FF3B3B] rounded-xl px-4 py-1 text-center card-3d">
+            <span className="font-display text-2xl text-white tracking-widest">TECLA P</span>
+          </div>
           <input
-            className="bg-slate-800 rounded-xl px-4 py-3 text-white text-center text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-pink-500"
+            className="bg-[#16162A] rounded-xl px-4 py-3 text-white text-center text-xl font-black focus:outline-none"
+            style={{ border: '3px solid #FF3B3B', boxShadow: '3px 3px 0 #000' }}
             value={player2Name}
             onChange={e => setPlayer2Name(e.target.value)}
             maxLength={12}
           />
         </div>
-      </div>
+      </motion.div>
 
-      <div className="flex flex-col items-center gap-3">
-        <span className="text-slate-400 text-sm">Puntos para ganar</span>
-        <div className="flex gap-3">
+      {/* Points selector */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25 }}
+        className="flex flex-col items-center gap-3"
+      >
+        <span className="font-display text-2xl text-white tracking-widest drop-shadow-[2px_2px_0_#000]">
+          PUNTOS PARA GANAR
+        </span>
+        <div className="flex gap-4">
           {[5, 10, 15].map(n => (
-            <button
+            <motion.button
               key={n}
+              whileTap={{ scale: 0.92 }}
               onClick={() => setPointsToWin(n)}
-              className={`w-16 h-12 rounded-xl font-bold text-lg transition-all ${
+              className={`w-20 h-14 rounded-xl font-display text-3xl transition-all btn-3d ${
                 pointsToWin === n
-                  ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/40'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  ? 'bg-[#FFD700] text-black'
+                  : 'bg-[#1E1E38] text-white hover:bg-[#2a2a4a]'
               }`}
             >
               {n}
-            </button>
+            </motion.button>
           ))}
         </div>
-      </div>
+      </motion.div>
 
-      <div className="bg-slate-800 rounded-2xl px-8 py-4 text-center text-sm text-slate-400">
-        <p className="mb-1">Tecla <span className="text-indigo-400 font-bold">Q</span> — {player1Name || 'Jugador 1'}</p>
-        <p>Tecla <span className="text-pink-400 font-bold">P</span> — {player2Name || 'Jugador 2'}</p>
-      </div>
-
-      <button
+      {/* Start */}
+      <motion.button
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.35, type: 'spring', bounce: 0.6 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.96 }}
         onClick={handleStart}
-        className="bg-indigo-500 hover:bg-indigo-400 text-white font-black text-2xl px-12 py-4 rounded-2xl transition-all shadow-lg shadow-indigo-500/40 active:scale-95"
+        className="bg-[#FFD700] text-black font-display text-5xl px-16 py-4 rounded-2xl tracking-widest btn-3d"
       >
-        ¡Jugar!
-      </button>
+        ¡JUGAR!
+      </motion.button>
     </div>
   )
 }
