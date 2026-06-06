@@ -5,6 +5,19 @@ function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+function dedupe(arr: string[]): string[] {
+  return [...new Set(arr)]
+}
+
 function denoms(round: number): number[] {
   if (round <= 2) return [2, 3, 4, 5]
   if (round <= 5) return [2, 3, 4, 5, 6, 8, 10]
@@ -18,11 +31,36 @@ function randomFraction(round: number): FractionValue {
   return { numerator: n, denominator: d }
 }
 
+// ── Compare ──────────────────────────────────────────────────────────────────
+
 function makeCompare(round: number): Exercise {
   const a = randomFraction(round)
   const b = randomFraction(round)
   const answer = compareFractions(a, b)
-  return { type: 'compare', fractionA: a, fractionB: b, answer, displayAnswer: answer }
+  // compare always has exactly 3 options — show all of them
+  const options = shuffle(['>', '<', '='])
+  return { type: 'compare', fractionA: a, fractionB: b, answer, displayAnswer: answer, options }
+}
+
+// ── Simplify ─────────────────────────────────────────────────────────────────
+
+function simplifyDistractors(correct: FractionValue, denominator: number, round: number): string[] {
+  const distractors: string[] = []
+  const ds = denoms(round)
+  // wrong numerators with same denominator
+  for (let i = 0; i < 4 && distractors.length < 4; i++) {
+    const n = randInt(1, denominator - 1)
+    const cand = fractionToString(simplifyFraction({ numerator: n, denominator }))
+    if (cand !== fractionToString(correct)) distractors.push(cand)
+  }
+  // fractions with different denominators
+  for (let i = 0; i < 6 && distractors.length < 5; i++) {
+    const d = ds[randInt(0, ds.length - 1)]
+    const n = randInt(1, d - 1)
+    const cand = fractionToString(simplifyFraction({ numerator: n, denominator: d }))
+    if (cand !== fractionToString(correct) && !distractors.includes(cand)) distractors.push(cand)
+  }
+  return distractors
 }
 
 function makeSimplify(round: number): Exercise {
@@ -35,7 +73,32 @@ function makeSimplify(round: number): Exercise {
   const denominator = d * factor
   const simplified = simplifyFraction({ numerator, denominator })
   const answer = fractionToString(simplified)
-  return { type: 'simplify', fractionA: { numerator, denominator }, answer, displayAnswer: answer }
+  const distractors = simplifyDistractors(simplified, denominator, round)
+  const options = shuffle(dedupe([answer, ...distractors]).slice(0, 6))
+  return { type: 'simplify', fractionA: { numerator, denominator }, answer, displayAnswer: answer, options }
+}
+
+// ── Amplify ──────────────────────────────────────────────────────────────────
+
+function amplifyDistractors(correct: number, targetDenominator: number): string[] {
+  const distractors: string[] = []
+  const seen = new Set([correct])
+  // near the correct answer
+  const deltas = [-3, -2, -1, 1, 2, 3, 4, 5, -4, -5]
+  for (const d of deltas) {
+    const cand = correct + d
+    if (cand > 0 && cand < targetDenominator && !seen.has(cand)) {
+      distractors.push(String(cand))
+      seen.add(cand)
+    }
+    if (distractors.length >= 5) break
+  }
+  // fallback: random numbers in range
+  while (distractors.length < 5) {
+    const cand = randInt(1, targetDenominator - 1)
+    if (!seen.has(cand)) { distractors.push(String(cand)); seen.add(cand) }
+  }
+  return distractors
 }
 
 function makeAmplify(round: number): Exercise {
@@ -45,13 +108,47 @@ function makeAmplify(round: number): Exercise {
   const factor = randInt(2, 4)
   const targetDenominator = d * factor
   const targetNumerator = n * factor
+  const answer = String(targetNumerator)
+  const distractors = amplifyDistractors(targetNumerator, targetDenominator)
+  const options = shuffle(dedupe([answer, ...distractors]).slice(0, 6))
   return {
     type: 'amplify',
     fractionA: { numerator: n, denominator: d },
     targetDenominator,
-    answer: String(targetNumerator),
-    displayAnswer: `${targetNumerator}`,
+    answer,
+    displayAnswer: answer,
+    options,
   }
+}
+
+// ── Mixed ────────────────────────────────────────────────────────────────────
+
+function mixedDistractors(whole: number, rem: number, d: number): string[] {
+  const correct = `${whole} y ${rem}/${d}`
+  const distractors: string[] = []
+  const seen = new Set([correct])
+
+  // wrong remainder, same whole and denominator
+  for (let r = 1; r < d && distractors.length < 3; r++) {
+    if (r !== rem) {
+      const cand = `${whole} y ${r}/${d}`
+      if (!seen.has(cand)) { distractors.push(cand); seen.add(cand) }
+    }
+  }
+  // wrong whole, same remainder and denominator
+  for (let w = 1; w <= 4 && distractors.length < 5; w++) {
+    if (w !== whole) {
+      const cand = `${w} y ${rem}/${d}`
+      if (!seen.has(cand)) { distractors.push(cand); seen.add(cand) }
+    }
+  }
+  // different denominator distractors
+  const altD = d === 4 ? 3 : 4
+  for (let r = 1; r < altD && distractors.length < 5; r++) {
+    const cand = `${whole} y ${r}/${altD}`
+    if (!seen.has(cand)) { distractors.push(cand); seen.add(cand) }
+  }
+  return distractors
 }
 
 function makeMixed(round: number): Exercise {
@@ -61,14 +158,19 @@ function makeMixed(round: number): Exercise {
   const rem = randInt(1, d - 1)
   const numerator = whole * d + rem
   const displayAnswer = `${whole} y ${rem}/${d}`
+  const distractors = mixedDistractors(whole, rem, d)
+  const options = shuffle(dedupe([displayAnswer, ...distractors]).slice(0, 6))
   return {
     type: 'mixed',
     fractionA: { numerator, denominator: d },
     wholePartA: whole,
     answer: displayAnswer,
     displayAnswer,
+    options,
   }
 }
+
+// ── Public API ───────────────────────────────────────────────────────────────
 
 const generators: Record<ExerciseType, (round: number) => Exercise> = {
   compare: makeCompare,
@@ -87,18 +189,5 @@ export function generateExercise(round: number): Exercise {
 export function validateAnswer(exercise: Exercise, userInput: string): boolean {
   const normalized = normalizeAnswer(userInput).toLowerCase()
   const expected = normalizeAnswer(String(exercise.answer)).toLowerCase()
-
-  if (exercise.type === 'compare' || exercise.type === 'amplify') {
-    return normalized === expected
-  }
-
-  if (exercise.type === 'simplify') {
-    return normalized.replace(/\s/g, '') === expected.replace(/\s/g, '')
-  }
-
-  if (exercise.type === 'mixed') {
-    return normalized.replace(/\s/g, '') === expected.replace(/\s/g, '')
-  }
-
-  return false
+  return normalized.replace(/\s/g, '') === expected.replace(/\s/g, '')
 }

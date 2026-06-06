@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Exercise, GameConfig, PlayerKey, Scores } from '../lib/types'
 import { generateExercise, validateAnswer } from '../lib/exercises'
@@ -12,7 +12,7 @@ interface Props {
   onGameEnd: (scores: Scores, config: GameConfig, winner: PlayerKey) => void
 }
 
-type Phase = 'waiting' | 'locked' | 'showing-result'
+type Phase = 'waiting' | 'locked'
 
 const MAX_HP = 100
 const DAMAGE = 25
@@ -22,7 +22,7 @@ const COMEBACK_HP = 40
 
 function FractionDisplay({ frac }: { frac: { numerator: number; denominator: number } }) {
   return (
-    <span className="flex flex-col items-center leading-none">
+    <span className="inline-flex flex-col items-center leading-none">
       <span>{frac.numerator}</span>
       <span className="w-full border-t-2 border-white my-1" />
       <span>{frac.denominator}</span>
@@ -30,12 +30,14 @@ function FractionDisplay({ frac }: { frac: { numerator: number; denominator: num
   )
 }
 
-function renderExercise(ex: Exercise) {
+function renderExercise(ex: Exercise, selectedOpt: string | null = null) {
   if (ex.type === 'compare') {
+    const symbol = selectedOpt ?? '___'
+    const symbolColor = selectedOpt ? 'text-yellow-300' : 'text-slate-400'
     return (
       <div className="flex items-center gap-6 text-4xl font-black">
         <FractionDisplay frac={ex.fractionA} />
-        <span className="text-slate-400 text-5xl w-12 text-center">___</span>
+        <span className={`text-5xl w-12 text-center transition-all ${symbolColor}`}>{symbol}</span>
         <FractionDisplay frac={ex.fractionB!} />
       </div>
     )
@@ -54,7 +56,7 @@ function renderExercise(ex: Exercise) {
       <div className="flex items-center gap-4 text-4xl font-black">
         <FractionDisplay frac={ex.fractionA} />
         <span className="text-slate-400">=</span>
-        <div className="flex flex-col items-center leading-none">
+        <div className="inline-flex flex-col items-center leading-none">
           <span className="text-indigo-400">?</span>
           <span className="w-full border-t-2 border-white my-1" />
           <span>{ex.targetDenominator}</span>
@@ -72,10 +74,92 @@ function renderExercise(ex: Exercise) {
 }
 
 function exerciseLabel(ex: Exercise) {
-  if (ex.type === 'compare') return '¿Mayor, menor o igual?  >  <  ='
-  if (ex.type === 'simplify') return 'Simplifica la fracción  (ej: 3/4)'
-  if (ex.type === 'amplify') return 'Escribe el numerador que falta'
-  return 'Convierte a número mixto  (ej: 1 y 3/4)'
+  if (ex.type === 'compare') return '¿Mayor >, menor < o igual =?'
+  if (ex.type === 'simplify') return 'Simplifica la fracción'
+  if (ex.type === 'amplify') return '¿Cuál es el numerador que falta?'
+  return 'Convierte a número mixto'
+}
+
+// Render option label nicely (fractions inline)
+function OptionLabel({ text }: { text: string }) {
+  // e.g. "3/4" → render as fraction, "1 y 3/4" → "1 y 3/4" with fraction part styled
+  if (text === '>' || text === '<' || text === '=') {
+    return <span className="text-2xl font-black">{text}</span>
+  }
+  // mixed: "1 y 3/4"
+  const mixedMatch = text.match(/^(\d+)\sy\s(\d+)\/(\d+)$/)
+  if (mixedMatch) {
+    return (
+      <span className="flex items-center gap-1 text-lg font-bold">
+        {mixedMatch[1]} y
+        <span className="inline-flex flex-col items-center leading-none text-base mx-1">
+          <span>{mixedMatch[2]}</span>
+          <span className="w-full border-t border-current my-0.5" />
+          <span>{mixedMatch[3]}</span>
+        </span>
+      </span>
+    )
+  }
+  // plain fraction: "3/4"
+  const fracMatch = text.match(/^(\d+)\/(\d+)$/)
+  if (fracMatch) {
+    return (
+      <span className="inline-flex flex-col items-center leading-none text-base font-bold">
+        <span>{fracMatch[1]}</span>
+        <span className="w-full border-t border-current my-0.5" />
+        <span>{fracMatch[2]}</span>
+      </span>
+    )
+  }
+  // number
+  return <span className="text-xl font-bold">{text}</span>
+}
+
+interface OptionGridProps {
+  options: string[]
+  locked: boolean           // this player buzzed in
+  onSelect: (opt: string) => void
+  selectedOption: string | null
+  correctAnswer: string
+  revealed: boolean         // show correct/wrong colors after answer
+  color: 'indigo' | 'pink'
+}
+
+function OptionGrid({ options, locked, onSelect, selectedOption, correctAnswer, revealed, color }: OptionGridProps) {
+  if (!locked) return null
+  const accent = color === 'indigo' ? 'border-indigo-500 bg-indigo-500/20 text-indigo-200' : 'border-pink-500 bg-pink-500/20 text-pink-200'
+  const base = 'border-slate-600 bg-slate-800 text-white hover:bg-slate-700 hover:border-slate-400'
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      className={`grid gap-2 ${options.length === 3 ? 'grid-cols-3' : 'grid-cols-3'} w-full max-w-xs`}
+    >
+      {options.map((opt, i) => {
+        let cls = base
+        if (revealed) {
+          if (opt === correctAnswer) cls = 'border-green-500 bg-green-500/20 text-green-200'
+          else if (opt === selectedOption) cls = 'border-red-500 bg-red-500/20 text-red-200'
+          else cls = 'border-slate-700 bg-slate-900 text-slate-500'
+        } else if (opt === selectedOption) {
+          cls = accent
+        }
+        return (
+          <motion.button
+            key={opt}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => !revealed && onSelect(opt)}
+            className={`border-2 rounded-xl px-3 py-3 flex items-center justify-center min-h-[56px] transition-colors cursor-pointer ${cls}`}
+            title={`Opción ${i + 1}`}
+          >
+            <OptionLabel text={opt} />
+          </motion.button>
+        )
+      })}
+    </motion.div>
+  )
 }
 
 export default function Game({ config, onGameEnd }: Props) {
@@ -87,28 +171,31 @@ export default function Game({ config, onGameEnd }: Props) {
   const [phase, setPhase] = useState<Phase>('waiting')
   const [lockedPlayer, setLockedPlayer] = useState<PlayerKey | null>(null)
   const [secondChance, setSecondChance] = useState(false)
-  const [userInput, setUserInput] = useState('')
+  const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null)
   const [timerKey, setTimerKey] = useState(0)
-
-  // Comeback state: when a player hits 0 HP, they get COMEBACK_NEEDED questions
   const [comebackPlayer, setComebackPlayer] = useState<PlayerKey | null>(null)
-  const [comebackCount, setComebackCount] = useState(0) // correct answers in comeback
+  const [comebackCount, setComebackCount] = useState(0)
 
-  const inputRef = useRef<HTMLInputElement>(null)
   const other = (p: PlayerKey): PlayerKey => p === 'q' ? 'p' : 'q'
+
+  const newExercise = (r: number) => generateExercise(Math.ceil(r / 3))
+
+  const resetRound = useCallback((r: number) => {
+    setExercise(newExercise(r))
+    setPhase('waiting')
+    setLockedPlayer(null)
+    setSecondChance(false)
+    setSelectedOption(null)
+    setFeedback(null)
+    setTimerKey(k => k + 1)
+  }, [])
 
   const startComeback = useCallback((loser: PlayerKey) => {
     setComebackPlayer(loser)
     setComebackCount(0)
-    setExercise(generateExercise(Math.ceil(round / 3)))
-    setPhase('waiting')
-    setLockedPlayer(null)
-    setSecondChance(false)
-    setUserInput('')
-    setFeedback(null)
-    setTimerKey(k => k + 1)
-  }, [round])
+    resetRound(round)
+  }, [round, resetRound])
 
   const endGame = useCallback((winner: PlayerKey, currentScores: Scores) => {
     onGameEnd(currentScores, config, winner)
@@ -117,16 +204,10 @@ export default function Game({ config, onGameEnd }: Props) {
   const nextRound = useCallback((_newScores: Scores, newHp: Record<PlayerKey, number>) => {
     if (newHp.q <= 0) { startComeback('q'); return }
     if (newHp.p <= 0) { startComeback('p'); return }
-
-    setRound(r => r + 1)
-    setExercise(generateExercise(Math.ceil((round + 1) / 3)))
-    setPhase('waiting')
-    setLockedPlayer(null)
-    setSecondChance(false)
-    setUserInput('')
-    setFeedback(null)
-    setTimerKey(k => k + 1)
-  }, [round, startComeback])
+    const next = round + 1
+    setRound(next)
+    resetRound(next)
+  }, [round, startComeback, resetRound])
 
   const applyCorrect = useCallback((scorer: PlayerKey, currentScores: Scores, currentHp: Record<PlayerKey, number>, currentStreak: Record<PlayerKey, number>) => {
     const newScores = { ...currentScores, [scorer]: currentScores[scorer] + 1 }
@@ -144,38 +225,22 @@ export default function Game({ config, onGameEnd }: Props) {
     setTimeout(() => nextRound(newScores, newHp), 1500)
   }, [nextRound])
 
-  const applyComebackCorrect = useCallback((_currentScores: Scores, currentHp: Record<PlayerKey, number>, loser: PlayerKey) => {
+  const applyComebackCorrect = useCallback((currentHp: Record<PlayerKey, number>, loser: PlayerKey) => {
     const next = comebackCount + 1
     setFeedback('correct')
     if (next >= COMEBACK_NEEDED) {
-      // Comeback success — restore HP and resume normal game
       const newHp = { ...currentHp, [loser]: COMEBACK_HP }
       setHp(newHp)
       setComebackPlayer(null)
       setComebackCount(0)
-      setTimeout(() => {
-        setRound(r => r + 1)
-        setExercise(generateExercise(Math.ceil((round + 1) / 3)))
-        setPhase('waiting')
-        setLockedPlayer(null)
-        setSecondChance(false)
-        setUserInput('')
-        setFeedback(null)
-        setTimerKey(k => k + 1)
-      }, 1500)
+      const next2 = round + 1
+      setRound(next2)
+      setTimeout(() => resetRound(next2), 1500)
     } else {
       setComebackCount(next)
-      setTimeout(() => {
-        setExercise(generateExercise(Math.ceil(round / 3)))
-        setPhase('waiting')
-        setLockedPlayer(null)
-        setSecondChance(false)
-        setUserInput('')
-        setFeedback(null)
-        setTimerKey(k => k + 1)
-      }, 1500)
+      setTimeout(() => resetRound(round), 1500)
     }
-  }, [comebackCount, round])
+  }, [comebackCount, round, resetRound])
 
   const applyComebackFail = useCallback((currentScores: Scores, loser: PlayerKey) => {
     setFeedback('wrong')
@@ -187,83 +252,107 @@ export default function Game({ config, onGameEnd }: Props) {
     setTimeout(() => nextRound(currentScores, currentHp), 1500)
   }, [nextRound])
 
-  const handleSubmit = useCallback(() => {
-    if (!lockedPlayer || phase !== 'locked' || feedback) return
-    const correct = validateAnswer(exercise, userInput)
+  // Second player got it right — point to them, NO damage to first player
+  const applyCorrectNoDamage = useCallback((scorer: PlayerKey, currentScores: Scores, currentHp: Record<PlayerKey, number>, currentStreak: Record<PlayerKey, number>) => {
+    const newScores = { ...currentScores, [scorer]: currentScores[scorer] + 1 }
+    const newStreak = { ...currentStreak, [scorer]: currentStreak[scorer] + 1, [other(scorer)]: 0 }
+    setScores(newScores)
+    setStreak(newStreak)
+    setFeedback('correct')
+    setTimeout(() => nextRound(newScores, currentHp), 1500)
+  }, [nextRound])
+
+  // Second player also failed — they take half damage
+  const applySecondChanceFail = useCallback((failedPlayer: PlayerKey, currentScores: Scores, currentHp: Record<PlayerKey, number>) => {
+    const newHp = { ...currentHp, [failedPlayer]: Math.max(0, currentHp[failedPlayer] - Math.floor(DAMAGE / 2)) }
+    setHp(newHp)
+    setFeedback('wrong')
+    setTimeout(() => nextRound(currentScores, newHp), 1500)
+  }, [nextRound])
+
+  const handleSelect = useCallback((opt: string) => {
+    if (!lockedPlayer || phase !== 'locked' || feedback || selectedOption) return
+    setSelectedOption(opt)
+    const correct = validateAnswer(exercise, opt)
 
     if (comebackPlayer) {
-      if (correct) {
-        applyComebackCorrect(scores, hp, comebackPlayer)
-      } else {
-        applyComebackFail(scores, comebackPlayer)
-      }
+      if (correct) applyComebackCorrect(hp, comebackPlayer)
+      else applyComebackFail(scores, comebackPlayer)
       return
     }
 
     if (correct) {
-      applyCorrect(lockedPlayer, scores, hp, streak)
+      if (secondChance) {
+        // Second player answered correctly — score point but NO HP damage to first player
+        applyCorrectNoDamage(lockedPlayer, scores, hp, streak)
+      } else {
+        applyCorrect(lockedPlayer, scores, hp, streak)
+      }
     } else {
       if (!secondChance) {
         setFeedback('wrong')
         setTimeout(() => {
           setFeedback(null)
+          setSelectedOption(null)
           setLockedPlayer(other(lockedPlayer))
           setSecondChance(true)
-          setUserInput('')
           setTimerKey(k => k + 1)
-          setTimeout(() => inputRef.current?.focus(), 50)
-        }, 800)
+        }, 900)
       } else {
-        applyNoScore(scores, hp)
+        // Second player also failed — they lose HP
+        applySecondChanceFail(lockedPlayer, scores, hp)
       }
     }
-  }, [lockedPlayer, phase, feedback, exercise, userInput, secondChance, scores, hp, streak, comebackPlayer, applyCorrect, applyComebackCorrect, applyComebackFail, applyNoScore])
+  }, [lockedPlayer, phase, feedback, selectedOption, exercise, secondChance, scores, hp, streak, comebackPlayer, applyCorrect, applyCorrectNoDamage, applySecondChanceFail, applyComebackCorrect, applyComebackFail, applyNoScore])
 
   const handleTimerExpire = useCallback(() => {
-    if (feedback) return
+    if (feedback || selectedOption) return
     if (comebackPlayer) {
       applyComebackFail(scores, comebackPlayer)
       return
     }
     if (!secondChance && lockedPlayer) {
+      setFeedback(null)
+      setSelectedOption(null)
       setLockedPlayer(other(lockedPlayer))
       setSecondChance(true)
-      setUserInput('')
       setTimerKey(k => k + 1)
-      setTimeout(() => inputRef.current?.focus(), 50)
     } else {
       applyNoScore(scores, hp)
     }
-  }, [feedback, secondChance, lockedPlayer, scores, hp, comebackPlayer, applyComebackFail, applyNoScore])
+  }, [feedback, selectedOption, secondChance, lockedPlayer, scores, hp, comebackPlayer, applyComebackFail, applyNoScore])
 
+  // Keyboard: Q/P to buzz, number keys 1-6 to pick option
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (phase === 'waiting') {
         const key = e.key.toLowerCase() as PlayerKey
-        // In comeback mode, only the comeback player can buzz
         if (comebackPlayer && key !== comebackPlayer) return
         if (key === 'q' || key === 'p') {
           setLockedPlayer(key)
           setPhase('locked')
           setTimerKey(k => k + 1)
-          setTimeout(() => inputRef.current?.focus(), 50)
         }
       }
-      if (phase === 'locked' && e.key === 'Enter') {
-        handleSubmit()
+      if (phase === 'locked' && lockedPlayer && !feedback && !selectedOption) {
+        const num = parseInt(e.key)
+        if (!isNaN(num) && num >= 1 && num <= exercise.options.length) {
+          handleSelect(exercise.options[num - 1])
+        }
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [phase, comebackPlayer, handleSubmit])
+  }, [phase, comebackPlayer, lockedPlayer, feedback, selectedOption, exercise, handleSelect])
 
   const p1 = config.player1Name
   const p2 = config.player2Name
   const inComeback = comebackPlayer !== null
+  const revealed = feedback !== null
 
   return (
     <div className="min-h-screen bg-slate-900 text-white flex flex-col">
-      {/* Street Fighter header */}
+      {/* Health bar header */}
       <div className="flex justify-between items-center px-6 py-4 bg-slate-950 border-b border-slate-800">
         <HealthBar hp={hp.q} maxHp={MAX_HP} side="left" name={p1} streak={streak.q} />
         <div className="flex flex-col items-center gap-1 px-4">
@@ -294,34 +383,37 @@ export default function Game({ config, onGameEnd }: Props) {
             </span>
             <div className="flex gap-1">
               {Array.from({ length: COMEBACK_NEEDED }, (_, i) => (
-                <div
-                  key={i}
-                  className={`w-4 h-4 rounded-full border-2 ${i < comebackCount ? 'bg-yellow-400 border-yellow-400' : 'border-red-500'}`}
-                />
+                <div key={i} className={`w-4 h-4 rounded-full border-2 ${i < comebackCount ? 'bg-yellow-400 border-yellow-400' : 'border-red-500'}`} />
               ))}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Exercise area */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-6 px-8 relative">
+      {/* Exercise */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4 relative">
         <AnimatePresence mode="wait">
           <motion.div
             key={`${round}-${comebackCount}`}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="flex flex-col items-center gap-4"
+            className="flex flex-col items-center gap-4 w-full max-w-2xl"
           >
             <p className="text-slate-500 text-sm">{exerciseLabel(exercise)}</p>
             <div className="bg-slate-800 rounded-3xl px-12 py-8 shadow-xl border border-slate-700">
-              {renderExercise(exercise)}
+              {renderExercise(exercise, exercise.type === 'compare' ? selectedOption : null)}
             </div>
             <FractionVisualizer fraction={exercise.fractionA} color="#6366f1" />
+
+            {/* Hint: number keys */}
+            {phase === 'locked' && !feedback && (
+              <p className="text-slate-600 text-xs">Puedes usar las teclas 1–{exercise.options.length} para seleccionar</p>
+            )}
           </motion.div>
         </AnimatePresence>
 
+        {/* Feedback overlay */}
         <AnimatePresence>
           {feedback && (
             <motion.div
@@ -336,10 +428,10 @@ export default function Game({ config, onGameEnd }: Props) {
         </AnimatePresence>
       </div>
 
-      {/* Buzzer row */}
-      <div className="flex justify-between items-end px-6 pb-6 bg-slate-950 border-t border-slate-800 pt-4">
-        {/* Player 1 side */}
-        <div className="flex flex-col items-start gap-3">
+      {/* Buzzer + options row */}
+      <div className="flex justify-between items-end px-6 pb-6 bg-slate-950 border-t border-slate-800 pt-4 gap-4">
+        {/* Player 1 */}
+        <div className="flex flex-col items-start gap-3 flex-1">
           <BuzzerIndicator
             keyLabel="Q"
             playerName={p1}
@@ -347,36 +439,31 @@ export default function Game({ config, onGameEnd }: Props) {
             locked={lockedPlayer === 'q'}
             side="left"
           />
-          <AnimatePresence>
-            {lockedPlayer === 'q' && phase === 'locked' && (
-              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="flex gap-2">
-                <input
-                  ref={inputRef}
-                  className="bg-slate-700 rounded-xl px-4 py-2 text-white text-xl w-36 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={userInput}
-                  onChange={e => setUserInput(e.target.value)}
-                  placeholder="Respuesta"
-                  autoComplete="off"
-                  onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                />
-                <button onClick={handleSubmit} className="bg-indigo-500 hover:bg-indigo-400 px-4 py-2 rounded-xl font-bold transition-colors">OK</button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <OptionGrid
+            options={exercise.options}
+            locked={lockedPlayer === 'q' && phase === 'locked'}
+            onSelect={handleSelect}
+            selectedOption={selectedOption}
+            correctAnswer={String(exercise.answer)}
+            revealed={revealed}
+            color="indigo"
+          />
         </div>
 
         {/* Timer center */}
-        {phase === 'locked' && lockedPlayer && (
-          <Timer
-            key={timerKey}
-            seconds={inComeback ? 10 : secondChance ? 5 : 10}
-            onExpire={handleTimerExpire}
-            running={phase === 'locked' && !feedback}
-          />
-        )}
+        <div className="flex-shrink-0">
+          {phase === 'locked' && lockedPlayer && (
+            <Timer
+              key={timerKey}
+              seconds={inComeback ? 10 : secondChance ? 5 : 10}
+              onExpire={handleTimerExpire}
+              running={phase === 'locked' && !feedback}
+            />
+          )}
+        </div>
 
-        {/* Player 2 side */}
-        <div className="flex flex-col items-end gap-3">
+        {/* Player 2 */}
+        <div className="flex flex-col items-end gap-3 flex-1">
           <BuzzerIndicator
             keyLabel="P"
             playerName={p2}
@@ -384,22 +471,15 @@ export default function Game({ config, onGameEnd }: Props) {
             locked={lockedPlayer === 'p'}
             side="right"
           />
-          <AnimatePresence>
-            {lockedPlayer === 'p' && phase === 'locked' && (
-              <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="flex gap-2">
-                <input
-                  ref={inputRef}
-                  className="bg-slate-700 rounded-xl px-4 py-2 text-white text-xl w-36 focus:outline-none focus:ring-2 focus:ring-pink-500"
-                  value={userInput}
-                  onChange={e => setUserInput(e.target.value)}
-                  placeholder="Respuesta"
-                  autoComplete="off"
-                  onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                />
-                <button onClick={handleSubmit} className="bg-pink-500 hover:bg-pink-400 px-4 py-2 rounded-xl font-bold transition-colors">OK</button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <OptionGrid
+            options={exercise.options}
+            locked={lockedPlayer === 'p' && phase === 'locked'}
+            onSelect={handleSelect}
+            selectedOption={selectedOption}
+            correctAnswer={String(exercise.answer)}
+            revealed={revealed}
+            color="pink"
+          />
         </div>
       </div>
     </div>

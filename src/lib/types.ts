@@ -25,6 +25,7 @@ export interface Exercise {
   wholePartA?: number
   answer: ExerciseAnswer
   displayAnswer: string
+  options: string[]  // shuffled choices including the correct answer
 }
 
 export interface RoundResult {
