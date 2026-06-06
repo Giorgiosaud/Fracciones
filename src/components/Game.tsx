@@ -8,6 +8,7 @@ import FractionVisualizer from './FractionVisualizer'
 import Timer from './Timer'
 import HealthBar from './HealthBar'
 import { useSoundFX } from '../hooks/useSoundFX'
+import { useBGM } from '../hooks/useBGM'
 import ScreenFlash from './effects/ScreenFlash'
 import FloatingDamage from './effects/FloatingDamage'
 import ComebackEntrance from './effects/ComebackEntrance'
@@ -222,6 +223,7 @@ export default function Game({ config, onGameEnd }: Props) {
   const jokeRoundRef = useRef<number>(0)
 
   const sfx = useSoundFX()
+  const bgm = useBGM()
 
   const [flash, setFlash] = useState<{ color: string; trigger: number }>({ color: '#ffffff', trigger: 0 })
   const fireFlash = useCallback((color: string) => setFlash(f => ({ color, trigger: f.trigger + 1 })), [])
@@ -487,6 +489,14 @@ export default function Game({ config, onGameEnd }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [phase, comebackPlayer, lockedPlayer, feedback, selectedOption, exercise, handleSelect, sfx, fireFlash])
 
+  // Auto-start BGM on first interaction (buzzer press starts it via the keyboard handler above)
+  // We start it lazily on first keydown so AudioContext is allowed by browser
+  useEffect(() => {
+    const onFirst = () => { bgm.start(); window.removeEventListener('keydown', onFirst) }
+    window.addEventListener('keydown', onFirst)
+    return () => { window.removeEventListener('keydown', onFirst); bgm.stop() }
+  }, [bgm])
+
   // Show hint after 8s when a player is locked and hasn't answered
   useEffect(() => {
     if (phase !== 'locked' || feedback || selectedOption) return
@@ -557,6 +567,29 @@ export default function Game({ config, onGameEnd }: Props) {
         </div>
         <HealthBar hp={hp.p} maxHp={MAX_HP} side="right" name={p2} streak={streak.p} shaking={shakingP} />
         {keyBadge('P')}
+        {/* BGM controls */}
+        <div className="flex flex-col items-center gap-1 flex-shrink-0 ml-1">
+          <motion.button
+            whileTap={{ scale: 0.88 }}
+            onClick={bgm.toggleMute}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-base"
+            style={{ background: '#1a1a2e', border: '2px solid #333', boxShadow: '2px 2px 0 #000' }}
+            title={bgm.muted ? 'Activar música' : 'Silenciar música'}
+          >
+            {bgm.muted ? '🔇' : '🔊'}
+          </motion.button>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={bgm.volume}
+            onChange={e => bgm.setVolume(parseFloat(e.target.value))}
+            className="w-8 accent-[#FFD700]"
+            style={{ writingMode: 'vertical-lr', direction: 'rtl', height: '40px', cursor: 'pointer' }}
+            title="Volumen"
+          />
+        </div>
       </div>
 
       {/* Comeback banner */}
