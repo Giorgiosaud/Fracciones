@@ -1,11 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import confetti from 'canvas-confetti'
 import type { Exercise, GameConfig, PlayerKey, Scores } from '../lib/types'
 import { generateExercise, validateAnswer } from '../lib/exercises'
 import { getRandomJoke } from '../lib/jokes'
 import FractionVisualizer from './FractionVisualizer'
 import Timer from './Timer'
 import HealthBar from './HealthBar'
+import { useSoundFX } from '../hooks/useSoundFX'
+import ScreenFlash from './effects/ScreenFlash'
+import FloatingDamage from './effects/FloatingDamage'
+import ComebackEntrance from './effects/ComebackEntrance'
 
 interface Props {
   config: GameConfig
@@ -16,9 +21,14 @@ type Phase = 'waiting' | 'locked'
 
 const MAX_HP = 100
 const DAMAGE = 25
-const HEAL_STREAK = 15
 const COMEBACK_NEEDED = 3
 const COMEBACK_HP = 40
+
+function calcDamage(baseStreak: number, isSecondChance: boolean) {
+  if (isSecondChance) return Math.floor(DAMAGE / 2)
+  const multiplier = baseStreak >= 3 ? 1 + (baseStreak - 2) * 0.1 : 1
+  return Math.round(DAMAGE * multiplier)
+}
 
 function FractionDisplay({ frac }: { frac: { numerator: number; denominator: number } }) {
   return (
@@ -211,6 +221,31 @@ export default function Game({ config, onGameEnd }: Props) {
   const jokeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const jokeRoundRef = useRef<number>(0)
 
+  const sfx = useSoundFX()
+
+  const [flash, setFlash] = useState<{ color: string; trigger: number }>({ color: '#ffffff', trigger: 0 })
+  const fireFlash = useCallback((color: string) => setFlash(f => ({ color, trigger: f.trigger + 1 })), [])
+
+  const [dmgQ, setDmgQ] = useState<{ value: string; trigger: number }>({ value: '', trigger: 0 })
+  const [dmgP, setDmgP] = useState<{ value: string; trigger: number }>({ value: '', trigger: 0 })
+  const fireDamage = useCallback((side: 'q' | 'p', value: string) => {
+    if (side === 'q') setDmgQ(d => ({ value, trigger: d.trigger + 1 }))
+    else setDmgP(d => ({ value, trigger: d.trigger + 1 }))
+  }, [])
+
+  const [shakingQ, setShakingQ] = useState(false)
+  const [shakingP, setShakingP] = useState(false)
+  const shakePlayer = useCallback((player: PlayerKey) => {
+    if (player === 'q') { setShakingQ(true); setTimeout(() => setShakingQ(false), 450) }
+    else { setShakingP(true); setTimeout(() => setShakingP(false), 450) }
+  }, [])
+
+  const [showComebackEntrance, setShowComebackEntrance] = useState(false)
+
+  const fireConfetti = useCallback(() => {
+    confetti({ particleCount: 120, spread: 80, origin: { y: 0.55 }, colors: ['#FFD700', '#00E676', '#1D9BF0', '#FF3B3B', '#ffffff'] })
+  }, [])
+
   const other = (p: PlayerKey): PlayerKey => p === 'q' ? 'p' : 'q'
 
   const newExercise = (r: number) => generateExercise(Math.ceil(r / 3))
@@ -258,8 +293,11 @@ export default function Game({ config, onGameEnd }: Props) {
   const startComeback = useCallback((loser: PlayerKey) => {
     setComebackPlayer(loser)
     setComebackCount(0)
+    sfx.playComebackActivate()
+    setShowComebackEntrance(true)
+    setTimeout(() => setShowComebackEntrance(false), 2500)
     resetRound(round)
-  }, [round, resetRound])
+  }, [round, resetRound, sfx])
 
   const endGame = useCallback((winner: PlayerKey, currentScores: Scores) => {
     onGameEnd(currentScores, config, winner)
@@ -276,18 +314,25 @@ export default function Game({ config, onGameEnd }: Props) {
   const applyCorrect = useCallback((scorer: PlayerKey, currentScores: Scores, currentHp: Record<PlayerKey, number>, currentStreak: Record<PlayerKey, number>) => {
     const newScores = { ...currentScores, [scorer]: currentScores[scorer] + 1 }
     const newStreak = { ...currentStreak, [scorer]: currentStreak[scorer] + 1, [other(scorer)]: 0 }
-    const heal = newStreak[scorer] >= 3 && newStreak[scorer] % 3 === 0 ? HEAL_STREAK : 0
+    const dmg = calcDamage(newStreak[scorer], false)
     const newHp = {
       ...currentHp,
-      [other(scorer)]: Math.max(0, currentHp[other(scorer)] - DAMAGE),
-      [scorer]: Math.min(MAX_HP, currentHp[scorer] + heal),
+      [other(scorer)]: Math.max(0, currentHp[other(scorer)] - dmg),
     }
     setScores(newScores)
     setStreak(newStreak)
     setHp(newHp)
     setFeedback('correct')
+    sfx.playCorrect()
+    if (newStreak[scorer] >= 3) sfx.playStreakHit(newStreak[scorer])
+    fireFlash('#00E676')
+    fireConfetti()
+    const multiplierLabel = newStreak[scorer] >= 3 ? `×${(1 + (newStreak[scorer] - 2) * 0.1).toFixed(1)} ` : ''
+    fireDamage(other(scorer), `-${multiplierLabel}${dmg}`)
+    shakePlayer(other(scorer))
+    sfx.playDamage()
     setTimeout(() => nextRound(newScores, newHp), 1500)
-  }, [nextRound])
+  }, [nextRound, sfx, fireFlash, fireConfetti, fireDamage, shakePlayer])
 
   const applyComebackCorrect = useCallback((currentHp: Record<PlayerKey, number>, loser: PlayerKey) => {
     const next = comebackCount + 1
@@ -297,42 +342,61 @@ export default function Game({ config, onGameEnd }: Props) {
       setHp(newHp)
       setComebackPlayer(null)
       setComebackCount(0)
+      sfx.playComebackSuccess()
+      fireFlash('#FFD700')
+      fireConfetti()
+      confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 }, colors: ['#FFD700', '#FF6B00', '#ffffff'] })
       const next2 = round + 1
       setRound(next2)
       setTimeout(() => resetRound(next2), 1500)
     } else {
       setComebackCount(next)
+      sfx.playComebackTick(next)
+      fireFlash('rgba(255,59,59,0.4)')
       setTimeout(() => resetRound(round), 1500)
     }
-  }, [comebackCount, round, resetRound])
+  }, [comebackCount, round, resetRound, sfx, fireFlash, fireConfetti])
 
   const applyComebackFail = useCallback((currentScores: Scores, loser: PlayerKey) => {
     setFeedback('wrong')
+    sfx.playComebackFail()
+    fireFlash('rgba(0,0,0,0.7)')
     setTimeout(() => endGame(other(loser), currentScores), 1500)
-  }, [endGame])
+  }, [endGame, sfx, fireFlash])
 
   const applyNoScore = useCallback((currentScores: Scores, currentHp: Record<PlayerKey, number>) => {
     setFeedback('wrong')
+    sfx.playWrong()
+    fireFlash('rgba(255,59,59,0.35)')
     setTimeout(() => nextRound(currentScores, currentHp), 1500)
-  }, [nextRound])
+  }, [nextRound, sfx, fireFlash])
 
-  // Second player got it right — point to them, NO damage to first player
+  // Second player got it right — half damage, no streak multiplier
   const applyCorrectNoDamage = useCallback((scorer: PlayerKey, currentScores: Scores, currentHp: Record<PlayerKey, number>, currentStreak: Record<PlayerKey, number>) => {
     const newScores = { ...currentScores, [scorer]: currentScores[scorer] + 1 }
     const newStreak = { ...currentStreak, [scorer]: currentStreak[scorer] + 1, [other(scorer)]: 0 }
+    const dmg = calcDamage(0, true)
+    const newHp = { ...currentHp, [other(scorer)]: Math.max(0, currentHp[other(scorer)] - dmg) }
     setScores(newScores)
     setStreak(newStreak)
-    setFeedback('correct')
-    setTimeout(() => nextRound(newScores, currentHp), 1500)
-  }, [nextRound])
-
-  // Second player also failed — they take half damage
-  const applySecondChanceFail = useCallback((failedPlayer: PlayerKey, currentScores: Scores, currentHp: Record<PlayerKey, number>) => {
-    const newHp = { ...currentHp, [failedPlayer]: Math.max(0, currentHp[failedPlayer] - Math.floor(DAMAGE / 2)) }
     setHp(newHp)
+    setFeedback('correct')
+    sfx.playCorrect()
+    fireFlash('#00E676')
+    fireConfetti()
+    fireDamage(other(scorer), `½ -${dmg}`)
+    shakePlayer(other(scorer))
+    sfx.playDamage()
+    setTimeout(() => nextRound(newScores, newHp), 1500)
+  }, [nextRound, sfx, fireFlash, fireConfetti, fireDamage, shakePlayer])
+
+  // Both players failed — no penalty, just next round
+  const applySecondChanceFail = useCallback((currentScores: Scores, currentHp: Record<PlayerKey, number>) => {
     setFeedback('wrong')
-    setTimeout(() => nextRound(currentScores, newHp), 1500)
-  }, [nextRound])
+    sfx.playWrong()
+    fireFlash('rgba(255,59,59,0.35)')
+    setTimeout(() => nextRound(currentScores, currentHp), 1500)
+  }, [nextRound, sfx, fireFlash])
 
   const handleSelect = useCallback((opt: string) => {
     if (!lockedPlayer || phase !== 'locked' || feedback || selectedOption) return
@@ -373,7 +437,7 @@ export default function Game({ config, onGameEnd }: Props) {
       } else {
         // Both answered wrong — now reveal correct
         setRevealCorrect(true)
-        applySecondChanceFail(lockedPlayer, scores, hp)
+        applySecondChanceFail(scores, hp)
       }
     }
   }, [lockedPlayer, phase, feedback, selectedOption, exercise, secondChance, scores, hp, streak, comebackPlayer, applyCorrect, applyCorrectNoDamage, applySecondChanceFail, applyComebackCorrect, applyComebackFail])
@@ -407,6 +471,9 @@ export default function Game({ config, onGameEnd }: Props) {
           setLockedPlayer(key)
           setPhase('locked')
           setTimerKey(k => k + 1)
+          setStreak(s => ({ ...s, [key === 'q' ? 'p' : 'q']: 0 }))
+          sfx.playBuzzer(key)
+          fireFlash(key === 'q' ? 'rgba(29,155,240,0.5)' : 'rgba(255,59,59,0.5)')
         }
       }
       if (phase === 'locked' && lockedPlayer && !feedback && !selectedOption) {
@@ -418,7 +485,7 @@ export default function Game({ config, onGameEnd }: Props) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [phase, comebackPlayer, lockedPlayer, feedback, selectedOption, exercise, handleSelect])
+  }, [phase, comebackPlayer, lockedPlayer, feedback, selectedOption, exercise, handleSelect, sfx, fireFlash])
 
   // Show hint after 8s when a player is locked and hasn't answered
   useEffect(() => {
@@ -468,10 +535,17 @@ export default function Game({ config, onGameEnd }: Props) {
 
   return (
     <div className="h-screen overflow-hidden text-white flex flex-col" style={{ background: 'var(--bg)' }}>
+      <ScreenFlash color={flash.color} trigger={flash.trigger} />
+      <FloatingDamage value={dmgQ.value} side="left" trigger={dmgQ.trigger} />
+      <FloatingDamage value={dmgP.value} side="right" trigger={dmgP.trigger} />
+      <ComebackEntrance
+        playerName={comebackPlayer === 'q' ? p1 : p2}
+        visible={showComebackEntrance}
+      />
       {/* Header: key badge | health bar | round | health bar | key badge */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10 flex-shrink-0" style={{ background: '#0a0a15' }}>
         {keyBadge('Q')}
-        <HealthBar hp={hp.q} maxHp={MAX_HP} side="left" name={p1} streak={streak.q} />
+        <HealthBar hp={hp.q} maxHp={MAX_HP} side="left" name={p1} streak={streak.q} shaking={shakingQ} />
         <div className="flex flex-col items-center gap-0.5 px-3 flex-shrink-0">
           <div className="font-display text-[10px] text-white/30 tracking-widest">RONDA</div>
           <div className="font-display text-3xl text-[#FFD700] drop-shadow-[2px_2px_0_#000] leading-none">{round}</div>
@@ -481,7 +555,7 @@ export default function Game({ config, onGameEnd }: Props) {
             <span style={{ color: '#FF3B3B', textShadow: '0 0 6px #FF3B3B' }}>{scores.p}</span>
           </div>
         </div>
-        <HealthBar hp={hp.p} maxHp={MAX_HP} side="right" name={p2} streak={streak.p} />
+        <HealthBar hp={hp.p} maxHp={MAX_HP} side="right" name={p2} streak={streak.p} shaking={shakingP} />
         {keyBadge('P')}
       </div>
 
@@ -544,7 +618,7 @@ export default function Game({ config, onGameEnd }: Props) {
                 <div className="mt-1">
                   <Timer
                     key={timerKey}
-                    seconds={inComeback ? 10 : secondChance ? 5 : 10}
+                    seconds={inComeback ? config.timerSeconds : secondChance ? Math.ceil(config.timerSeconds / 2) : config.timerSeconds}
                     onExpire={handleTimerExpire}
                     running={phase === 'locked' && !feedback}
                   />
