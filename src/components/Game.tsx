@@ -32,7 +32,7 @@ function FractionDisplay({ frac }: { frac: { numerator: number; denominator: num
 
 function renderExercise(ex: Exercise, selectedOpt: string | null = null) {
   if (ex.type === 'compare') {
-    const symbol = selectedOpt ?? '___'
+    const symbol = selectedOpt ?? '?'
     const symbolColor = selectedOpt ? 'text-yellow-300' : 'text-slate-400'
     return (
       <div className="flex items-center gap-6 text-4xl font-black">
@@ -126,39 +126,37 @@ interface OptionGridProps {
 }
 
 function OptionGrid({ options, locked, onSelect, selectedOption, correctAnswer, revealed, color }: OptionGridProps) {
-  if (!locked) return null
   const accent = color === 'indigo' ? 'border-indigo-500 bg-indigo-500/20 text-indigo-200' : 'border-pink-500 bg-pink-500/20 text-pink-200'
-  const base = 'border-slate-600 bg-slate-800 text-white hover:bg-slate-700 hover:border-slate-400'
+  const base = locked
+    ? 'border-slate-600 bg-slate-800 text-white hover:bg-slate-700 hover:border-slate-400 cursor-pointer'
+    : 'border-slate-700 bg-slate-800/50 text-slate-500 cursor-default'
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      className={`grid gap-2 ${options.length === 3 ? 'grid-cols-3' : 'grid-cols-3'} w-full max-w-xs`}
-    >
+    <div className={`grid gap-2 grid-cols-3 w-full max-w-xs ${!locked ? 'opacity-50' : ''}`}>
       {options.map((opt, i) => {
         let cls = base
-        if (revealed) {
-          if (opt === correctAnswer) cls = 'border-green-500 bg-green-500/20 text-green-200'
-          else if (opt === selectedOption) cls = 'border-red-500 bg-red-500/20 text-red-200'
-          else cls = 'border-slate-700 bg-slate-900 text-slate-500'
-        } else if (opt === selectedOption) {
-          cls = accent
+        if (locked) {
+          if (revealed) {
+            if (opt === correctAnswer) cls = 'border-green-500 bg-green-500/20 text-green-200 cursor-default'
+            else if (opt === selectedOption) cls = 'border-red-500 bg-red-500/20 text-red-200 cursor-default'
+            else cls = 'border-slate-700 bg-slate-900 text-slate-500 cursor-default'
+          } else if (opt === selectedOption) {
+            cls = accent
+          }
         }
         return (
           <motion.button
             key={opt}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => !revealed && onSelect(opt)}
-            className={`border-2 rounded-xl px-3 py-3 flex items-center justify-center min-h-[56px] transition-colors cursor-pointer ${cls}`}
-            title={`Opción ${i + 1}`}
+            whileTap={locked && !revealed ? { scale: 0.95 } : {}}
+            onClick={() => locked && !revealed && onSelect(opt)}
+            className={`border-2 rounded-xl px-3 py-3 flex items-center justify-center min-h-[56px] transition-colors ${cls}`}
+            title={locked ? `Opción ${i + 1}` : ''}
           >
             <OptionLabel text={opt} />
           </motion.button>
         )
       })}
-    </motion.div>
+    </div>
   )
 }
 
@@ -406,30 +404,24 @@ export default function Game({ config, onGameEnd }: Props) {
             </div>
             <FractionVisualizer fraction={exercise.fractionA} color="#6366f1" />
 
-            {/* Options — shown in center when a player is locked in */}
-            <AnimatePresence>
-              {phase === 'locked' && lockedPlayer && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="flex flex-col items-center gap-2 w-full"
-                >
-                  <OptionGrid
-                    options={exercise.options}
-                    locked
-                    onSelect={handleSelect}
-                    selectedOption={selectedOption}
-                    correctAnswer={String(exercise.answer)}
-                    revealed={revealed}
-                    color={lockedPlayer === 'q' ? 'indigo' : 'pink'}
-                  />
-                  {!feedback && (
-                    <p className="text-slate-600 text-xs">Teclas 1–{exercise.options.length} para seleccionar</p>
-                  )}
-                </motion.div>
+            {/* Options — always visible, interactive only when locked */}
+            <div className="flex flex-col items-center gap-2 w-full">
+              <OptionGrid
+                options={exercise.options}
+                locked={phase === 'locked' && !!lockedPlayer}
+                onSelect={handleSelect}
+                selectedOption={selectedOption}
+                correctAnswer={String(exercise.answer)}
+                revealed={revealed}
+                color={lockedPlayer === 'q' ? 'indigo' : 'pink'}
+              />
+              {phase === 'locked' && !feedback && (
+                <p className="text-slate-600 text-xs">Teclas 1–{exercise.options.length} para seleccionar</p>
               )}
-            </AnimatePresence>
+              {phase === 'waiting' && (
+                <p className="text-slate-600 text-xs">Presiona Q o P para responder</p>
+              )}
+            </div>
           </motion.div>
         </AnimatePresence>
 
