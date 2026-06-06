@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Exercise, GameConfig, PlayerKey, Scores } from '../lib/types'
 import { generateExercise, validateAnswer } from '../lib/exercises'
+import { getRandomJoke } from '../lib/jokes'
 import FractionVisualizer from './FractionVisualizer'
 import BuzzerIndicator from './BuzzerIndicator'
 import Timer from './Timer'
@@ -199,12 +200,43 @@ export default function Game({ config, onGameEnd }: Props) {
   const [comebackPlayer, setComebackPlayer] = useState<PlayerKey | null>(null)
   const [comebackCount, setComebackCount] = useState(0)
   const [showHint, setShowHint] = useState(false)
+  const [joke, setJoke] = useState<{ setup: string; punchline: string } | null>(null)
+  const jokeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const other = (p: PlayerKey): PlayerKey => p === 'q' ? 'p' : 'q'
 
   const newExercise = (r: number) => generateExercise(Math.ceil(r / 3))
 
+  const showJokeThenReset = useCallback((r: number) => {
+    // Show a joke every 3 rounds
+    if (r % 3 === 0) {
+      setJoke(getRandomJoke())
+      jokeTimer.current = setTimeout(() => {
+        setJoke(null)
+        setExercise(newExercise(r))
+        setPhase('waiting')
+        setLockedPlayer(null)
+        setSecondChance(false)
+        setSelectedOption(null)
+        setFeedback(null)
+        setShowHint(false)
+        setTimerKey(k => k + 1)
+      }, 4000)
+    } else {
+      setExercise(newExercise(r))
+      setPhase('waiting')
+      setLockedPlayer(null)
+      setSecondChance(false)
+      setSelectedOption(null)
+      setFeedback(null)
+      setShowHint(false)
+      setTimerKey(k => k + 1)
+    }
+  }, [])
+
   const resetRound = useCallback((r: number) => {
+    if (jokeTimer.current) clearTimeout(jokeTimer.current)
+    setJoke(null)
     setExercise(newExercise(r))
     setPhase('waiting')
     setLockedPlayer(null)
@@ -230,8 +262,8 @@ export default function Game({ config, onGameEnd }: Props) {
     if (newHp.p <= 0) { startComeback('p'); return }
     const next = round + 1
     setRound(next)
-    resetRound(next)
-  }, [round, startComeback, resetRound])
+    showJokeThenReset(next)
+  }, [round, startComeback, showJokeThenReset])
 
   const applyCorrect = useCallback((scorer: PlayerKey, currentScores: Scores, currentHp: Record<PlayerKey, number>, currentStreak: Record<PlayerKey, number>) => {
     const newScores = { ...currentScores, [scorer]: currentScores[scorer] + 1 }
@@ -481,6 +513,25 @@ export default function Game({ config, onGameEnd }: Props) {
               className={`absolute text-9xl pointer-events-none ${feedback === 'correct' ? 'text-green-400' : 'text-red-400'}`}
             >
               {feedback === 'correct' ? '✓' : '✗'}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Joke overlay between rounds */}
+        <AnimatePresence>
+          {joke && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="absolute inset-0 flex items-center justify-center bg-slate-900/95 z-20"
+            >
+              <div className="text-center max-w-sm px-6">
+                <div className="text-4xl mb-4">😄</div>
+                <p className="text-white text-lg font-semibold mb-3">{joke.setup}</p>
+                <p className="text-yellow-300 text-xl font-black">{joke.punchline}</p>
+                <p className="text-slate-600 text-xs mt-4">Siguiente ronda en un momento...</p>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
