@@ -118,39 +118,42 @@ function OptionLabel({ text }: { text: string }) {
 
 interface OptionGridProps {
   options: string[]
-  locked: boolean           // this player buzzed in
+  locked: boolean
   onSelect: (opt: string) => void
-  selectedOption: string | null
+  wrongSelections: string[]   // options already chosen wrong (by either player)
   correctAnswer: string
-  revealed: boolean         // show correct/wrong colors after answer
+  revealCorrect: boolean      // only true after both players responded
   color: 'indigo' | 'pink'
 }
 
-function OptionGrid({ options, locked, onSelect, selectedOption, correctAnswer, revealed, color }: OptionGridProps) {
-  const accent = color === 'indigo' ? 'border-indigo-500 bg-indigo-500/20 text-indigo-200' : 'border-pink-500 bg-pink-500/20 text-pink-200'
-  const base = locked
-    ? 'border-slate-600 bg-slate-800 text-white hover:bg-slate-700 hover:border-slate-400 cursor-pointer'
-    : 'border-slate-700 bg-slate-800/50 text-slate-500 cursor-default'
+function OptionGrid({ options, locked, onSelect, wrongSelections, correctAnswer, revealCorrect, color }: OptionGridProps) {
+  const accentBorder = color === 'indigo' ? 'border-indigo-400' : 'border-pink-400'
+  const accentBg = color === 'indigo' ? 'bg-indigo-500/10 text-indigo-200' : 'bg-pink-500/10 text-pink-200'
+  const canClick = locked && !revealCorrect
 
   return (
-    <div className={`grid gap-2 grid-cols-3 w-full max-w-xs ${!locked ? 'opacity-50' : ''}`}>
+    <div className={`grid gap-2 grid-cols-3 w-full max-w-sm transition-opacity ${!locked ? 'opacity-40' : ''}`}>
       {options.map((opt, i) => {
-        let cls = base
-        if (locked) {
-          if (revealed) {
-            if (opt === correctAnswer) cls = 'border-green-500 bg-green-500/20 text-green-200 cursor-default'
-            else if (opt === selectedOption) cls = 'border-red-500 bg-red-500/20 text-red-200 cursor-default'
-            else cls = 'border-slate-700 bg-slate-900 text-slate-500 cursor-default'
-          } else if (opt === selectedOption) {
-            cls = accent
-          }
+        const isWrong = wrongSelections.includes(opt)
+        const isCorrect = revealCorrect && opt === correctAnswer
+
+        let cls: string
+        if (isCorrect) {
+          cls = 'border-green-500 bg-green-500/20 text-green-200 cursor-default'
+        } else if (isWrong) {
+          cls = 'border-red-500/60 bg-red-900/20 text-red-400/70 cursor-default line-through'
+        } else if (canClick) {
+          cls = `border-slate-600 bg-slate-800 text-white hover:${accentBg} hover:${accentBorder} cursor-pointer`
+        } else {
+          cls = 'border-slate-700 bg-slate-800/50 text-slate-500 cursor-default'
         }
+
         return (
           <motion.button
             key={opt}
-            whileTap={locked && !revealed ? { scale: 0.95 } : {}}
-            onClick={() => locked && !revealed && onSelect(opt)}
-            className={`border-2 rounded-xl px-3 py-3 flex items-center justify-center min-h-[56px] transition-colors ${cls}`}
+            whileTap={canClick && !isWrong ? { scale: 0.95 } : {}}
+            onClick={() => canClick && !isWrong && onSelect(opt)}
+            className={`border-2 rounded-xl px-3 py-3 flex items-center justify-center min-h-[56px] transition-all ${cls}`}
             title={locked ? `Opción ${i + 1}` : ''}
           >
             <OptionLabel text={opt} />
@@ -194,7 +197,9 @@ export default function Game({ config, onGameEnd }: Props) {
   const [phase, setPhase] = useState<Phase>('waiting')
   const [lockedPlayer, setLockedPlayer] = useState<PlayerKey | null>(null)
   const [secondChance, setSecondChance] = useState(false)
-  const [selectedOption, setSelectedOption] = useState<string | null>(null)
+  const [selectedOption, setSelectedOption] = useState<string | null>(null)  // current player's pick (for compare display)
+  const [wrongSelections, setWrongSelections] = useState<string[]>([])        // all wrong picks so far
+  const [revealCorrect, setRevealCorrect] = useState(false)                   // show green after both responded
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null)
   const [timerKey, setTimerKey] = useState(0)
   const [comebackPlayer, setComebackPlayer] = useState<PlayerKey | null>(null)
@@ -242,6 +247,8 @@ export default function Game({ config, onGameEnd }: Props) {
     setLockedPlayer(null)
     setSecondChance(false)
     setSelectedOption(null)
+    setWrongSelections([])
+    setRevealCorrect(false)
     setFeedback(null)
     setShowHint(false)
     setTimerKey(k => k + 1)
@@ -332,48 +339,59 @@ export default function Game({ config, onGameEnd }: Props) {
     const correct = validateAnswer(exercise, opt)
 
     if (comebackPlayer) {
-      if (correct) applyComebackCorrect(hp, comebackPlayer)
-      else applyComebackFail(scores, comebackPlayer)
+      if (correct) {
+        setRevealCorrect(true)
+        setFeedback('correct')
+        setTimeout(() => applyComebackCorrect(hp, comebackPlayer), 1500)
+      } else {
+        setWrongSelections(w => [...w, opt])
+        setRevealCorrect(true)
+        setFeedback('wrong')
+        setTimeout(() => applyComebackFail(scores, comebackPlayer), 1500)
+      }
       return
     }
 
     if (correct) {
+      setRevealCorrect(true)
       if (secondChance) {
-        // Second player answered correctly — score point but NO HP damage to first player
         applyCorrectNoDamage(lockedPlayer, scores, hp, streak)
       } else {
         applyCorrect(lockedPlayer, scores, hp, streak)
       }
     } else {
+      setWrongSelections(w => [...w, opt])
       if (!secondChance) {
-        setFeedback('wrong')
+        // First player wrong — pass to second, don't reveal correct yet
         setTimeout(() => {
-          setFeedback(null)
           setSelectedOption(null)
           setLockedPlayer(other(lockedPlayer))
           setSecondChance(true)
           setTimerKey(k => k + 1)
         }, 900)
       } else {
-        // Second player also failed — they lose HP
+        // Both answered wrong — now reveal correct
+        setRevealCorrect(true)
         applySecondChanceFail(lockedPlayer, scores, hp)
       }
     }
-  }, [lockedPlayer, phase, feedback, selectedOption, exercise, secondChance, scores, hp, streak, comebackPlayer, applyCorrect, applyCorrectNoDamage, applySecondChanceFail, applyComebackCorrect, applyComebackFail, applyNoScore])
+  }, [lockedPlayer, phase, feedback, selectedOption, exercise, secondChance, scores, hp, streak, comebackPlayer, applyCorrect, applyCorrectNoDamage, applySecondChanceFail, applyComebackCorrect, applyComebackFail])
 
   const handleTimerExpire = useCallback(() => {
     if (feedback || selectedOption) return
     if (comebackPlayer) {
+      setRevealCorrect(true)
       applyComebackFail(scores, comebackPlayer)
       return
     }
     if (!secondChance && lockedPlayer) {
-      setFeedback(null)
       setSelectedOption(null)
       setLockedPlayer(other(lockedPlayer))
       setSecondChance(true)
       setTimerKey(k => k + 1)
     } else {
+      // Both timed out — reveal correct and no score
+      setRevealCorrect(true)
       applyNoScore(scores, hp)
     }
   }, [feedback, selectedOption, secondChance, lockedPlayer, scores, hp, comebackPlayer, applyComebackFail, applyNoScore])
@@ -412,7 +430,6 @@ export default function Game({ config, onGameEnd }: Props) {
   const p1 = config.player1Name
   const p2 = config.player2Name
   const inComeback = comebackPlayer !== null
-  const revealed = feedback !== null
 
   return (
     <div className="min-h-screen bg-slate-900 text-white flex flex-col">
@@ -476,9 +493,9 @@ export default function Game({ config, onGameEnd }: Props) {
                 options={exercise.options}
                 locked={phase === 'locked' && !!lockedPlayer}
                 onSelect={handleSelect}
-                selectedOption={selectedOption}
+                wrongSelections={wrongSelections}
                 correctAnswer={String(exercise.answer)}
-                revealed={revealed}
+                revealCorrect={revealCorrect}
                 color={lockedPlayer === 'q' ? 'indigo' : 'pink'}
               />
               {phase === 'locked' && !feedback && (
@@ -540,7 +557,7 @@ export default function Game({ config, onGameEnd }: Props) {
       {/* Buzzer row */}
       <div className="flex justify-between items-center px-6 pb-6 bg-slate-950 border-t border-slate-800 pt-4 gap-4">
         {/* Player 1 */}
-        <div className="flex flex-col items-start gap-3 flex-1">
+        <div className={`flex flex-col items-start gap-3 flex-1 rounded-2xl p-2 transition-all duration-300 ${lockedPlayer === 'q' ? 'bg-indigo-500/10 ring-2 ring-indigo-500/50' : ''}`}>
           <BuzzerIndicator
             keyLabel="Q"
             playerName={p1}
@@ -563,7 +580,7 @@ export default function Game({ config, onGameEnd }: Props) {
         </div>
 
         {/* Player 2 */}
-        <div className="flex flex-col items-end gap-3 flex-1">
+        <div className={`flex flex-col items-end gap-3 flex-1 rounded-2xl p-2 transition-all duration-300 ${lockedPlayer === 'p' ? 'bg-pink-500/10 ring-2 ring-pink-500/50' : ''}`}>
           <BuzzerIndicator
             keyLabel="P"
             playerName={p2}
