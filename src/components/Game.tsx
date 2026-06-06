@@ -160,6 +160,30 @@ function OptionGrid({ options, locked, onSelect, selectedOption, correctAnswer, 
   )
 }
 
+function buildHint(ex: Exercise): string {
+  if (ex.type === 'compare') {
+    const a = ex.fractionA
+    const b = ex.fractionB!
+    const da = (a.numerator / a.denominator).toFixed(2)
+    const db = (b.numerator / b.denominator).toFixed(2)
+    return `Pista: convierte a decimal → ${a.numerator}/${a.denominator} = ${da}  y  ${b.numerator}/${b.denominator} = ${db}`
+  }
+  if (ex.type === 'simplify') {
+    const { numerator: n, denominator: d } = ex.fractionA
+    return `Pista: busca el MCD de ${n} y ${d}, luego divide ambos por él`
+  }
+  if (ex.type === 'amplify') {
+    const { numerator: n, denominator: d } = ex.fractionA
+    const factor = ex.targetDenominator! / d
+    return `Pista: ${d} × ${factor} = ${ex.targetDenominator}, así que el numerador es ${n} × ${factor}`
+  }
+  // mixed
+  const { numerator: n, denominator: d } = ex.fractionA
+  const whole = Math.floor(n / d)
+  const rem = n % d
+  return `Pista: ${n} ÷ ${d} = ${whole} (resto ${rem}), entonces es ${whole} y ${rem}/${d}`
+}
+
 export default function Game({ config, onGameEnd }: Props) {
   const [scores, setScores] = useState<Scores>({ q: 0, p: 0 })
   const [hp, setHp] = useState<Record<PlayerKey, number>>({ q: MAX_HP, p: MAX_HP })
@@ -174,6 +198,7 @@ export default function Game({ config, onGameEnd }: Props) {
   const [timerKey, setTimerKey] = useState(0)
   const [comebackPlayer, setComebackPlayer] = useState<PlayerKey | null>(null)
   const [comebackCount, setComebackCount] = useState(0)
+  const [showHint, setShowHint] = useState(false)
 
   const other = (p: PlayerKey): PlayerKey => p === 'q' ? 'p' : 'q'
 
@@ -186,6 +211,7 @@ export default function Game({ config, onGameEnd }: Props) {
     setSecondChance(false)
     setSelectedOption(null)
     setFeedback(null)
+    setShowHint(false)
     setTimerKey(k => k + 1)
   }, [])
 
@@ -343,6 +369,14 @@ export default function Game({ config, onGameEnd }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [phase, comebackPlayer, lockedPlayer, feedback, selectedOption, exercise, handleSelect])
 
+  // Show hint after 8s when a player is locked and hasn't answered
+  useEffect(() => {
+    if (phase !== 'locked' || feedback || selectedOption) return
+    setShowHint(false)
+    const id = setTimeout(() => setShowHint(true), 8000)
+    return () => clearTimeout(id)
+  }, [phase, timerKey, feedback, selectedOption])
+
   const p1 = config.player1Name
   const p2 = config.player2Name
   const inComeback = comebackPlayer !== null
@@ -421,6 +455,18 @@ export default function Game({ config, onGameEnd }: Props) {
               {phase === 'waiting' && (
                 <p className="text-slate-600 text-xs">Presiona Q o P para responder</p>
               )}
+              <AnimatePresence>
+                {showHint && !feedback && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="mt-1 px-4 py-2 bg-yellow-900/40 border border-yellow-600/40 rounded-xl text-yellow-300 text-sm text-center max-w-sm"
+                  >
+                    💡 {buildHint(exercise)}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
         </AnimatePresence>
