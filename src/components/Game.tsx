@@ -406,10 +406,30 @@ export default function Game({ config, onGameEnd }: Props) {
             </div>
             <FractionVisualizer fraction={exercise.fractionA} color="#6366f1" />
 
-            {/* Hint: number keys */}
-            {phase === 'locked' && !feedback && (
-              <p className="text-slate-600 text-xs">Puedes usar las teclas 1–{exercise.options.length} para seleccionar</p>
-            )}
+            {/* Options — shown in center when a player is locked in */}
+            <AnimatePresence>
+              {phase === 'locked' && lockedPlayer && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="flex flex-col items-center gap-2 w-full"
+                >
+                  <OptionGrid
+                    options={exercise.options}
+                    locked
+                    onSelect={handleSelect}
+                    selectedOption={selectedOption}
+                    correctAnswer={String(exercise.answer)}
+                    revealed={revealed}
+                    color={lockedPlayer === 'q' ? 'indigo' : 'pink'}
+                  />
+                  {!feedback && (
+                    <p className="text-slate-600 text-xs">Teclas 1–{exercise.options.length} para seleccionar</p>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         </AnimatePresence>
 
@@ -428,8 +448,8 @@ export default function Game({ config, onGameEnd }: Props) {
         </AnimatePresence>
       </div>
 
-      {/* Buzzer + options row */}
-      <div className="flex justify-between items-end px-6 pb-6 bg-slate-950 border-t border-slate-800 pt-4 gap-4">
+      {/* Buzzer row */}
+      <div className="flex justify-between items-center px-6 pb-6 bg-slate-950 border-t border-slate-800 pt-4 gap-4">
         {/* Player 1 */}
         <div className="flex flex-col items-start gap-3 flex-1">
           <BuzzerIndicator
@@ -438,15 +458,6 @@ export default function Game({ config, onGameEnd }: Props) {
             active={phase === 'waiting' && (!inComeback || comebackPlayer === 'q')}
             locked={lockedPlayer === 'q'}
             side="left"
-          />
-          <OptionGrid
-            options={exercise.options}
-            locked={lockedPlayer === 'q' && phase === 'locked'}
-            onSelect={handleSelect}
-            selectedOption={selectedOption}
-            correctAnswer={String(exercise.answer)}
-            revealed={revealed}
-            color="indigo"
           />
         </div>
 
@@ -470,15 +481,6 @@ export default function Game({ config, onGameEnd }: Props) {
             active={phase === 'waiting' && (!inComeback || comebackPlayer === 'p')}
             locked={lockedPlayer === 'p'}
             side="right"
-          />
-          <OptionGrid
-            options={exercise.options}
-            locked={lockedPlayer === 'p' && phase === 'locked'}
-            onSelect={handleSelect}
-            selectedOption={selectedOption}
-            correctAnswer={String(exercise.answer)}
-            revealed={revealed}
-            color="pink"
           />
         </div>
       </div>
