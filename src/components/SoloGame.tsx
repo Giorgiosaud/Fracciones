@@ -113,8 +113,7 @@ export default function SoloGame({ config, onExit }: Props) {
       fireFlash('rgba(255,59,59,0.35)')
     }
     setRevealCorrect(true)
-    setTimeout(nextRound, 1500)
-  }, [streak, bestStreak, record, sfx, bgm, fireFlash, fireConfetti, nextRound])
+  }, [streak, bestStreak, record, sfx, bgm, fireFlash, fireConfetti])
 
   const handleSelect = useCallback((opt: string) => {
     if (phase !== 'answering' || feedback || selectedOption) return
@@ -281,6 +280,18 @@ export default function SoloGame({ config, onExit }: Props) {
                   </motion.div>
                 )}
               </AnimatePresence>
+              {feedback && (
+                <motion.button
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={nextRound}
+                  className="mt-1 btn-3d font-display text-black text-base px-8 py-2 rounded-xl tracking-widest"
+                  style={{ background: '#FFD700' }}
+                >
+                  CONTINUAR
+                </motion.button>
+              )}
             </div>
           </motion.div>
         </AnimatePresence>

@@ -89,7 +89,9 @@ afterEach(() => {
 const answerByPosition = (position: number) => fireEvent.click(screen.getByTitle(`Opción ${position}`))
 const CORRECT_OPTION = 1 // makeExercise() places '1/2' (the answer) first
 const WRONG_OPTION = 2
-const advanceToNextRound = () => act(() => { vi.advanceTimersByTime(1500) })
+// Progression is manual now — the player must press "CONTINUAR" after seeing
+// feedback (no more auto-advance timeout).
+const advanceToNextRound = () => fireEvent.click(screen.getByText('CONTINUAR'))
 
 describe('SoloGame', () => {
   it('renders the exercise and stats header', () => {
@@ -119,6 +121,21 @@ describe('SoloGame', () => {
     fireEvent.keyDown(window, { key })
 
     expect(screen.getByText(expected)).toBeInTheDocument()
+  })
+
+  it('waits for "CONTINUAR" instead of auto-advancing after an answer', () => {
+    render(<SoloGame config={config} onExit={vi.fn()} />)
+    answerByPosition(CORRECT_OPTION)
+
+    // Feedback is shown and progression is gated behind a manual button —
+    // letting time pass on its own must not advance the round.
+    const continueButton = screen.getByText('CONTINUAR')
+    act(() => { vi.advanceTimersByTime(10000) })
+    expect(screen.getByText('CONTINUAR')).toBeInTheDocument()
+    expect(screen.getByText('1/1')).toBeInTheDocument()
+
+    fireEvent.click(continueButton)
+    expect(screen.queryByText('CONTINUAR')).not.toBeInTheDocument()
   })
 
   it('ignores further selections once an answer has been chosen', () => {
