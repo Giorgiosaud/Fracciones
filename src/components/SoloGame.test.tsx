@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { createElement, type ReactNode } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import SoloGame from './SoloGame'
@@ -14,7 +14,7 @@ vi.mock('framer-motion', () => {
   const passthrough = (Tag: string) =>
     ({ children, ...props }: Record<string, unknown> & { children?: ReactNode }) => {
       const { initial: _initial, animate: _animate, exit: _exit, whileTap: _whileTap, onAnimationComplete: _onAnimationComplete, ...rest } = props
-      return <Tag {...rest}>{children}</Tag>
+      return createElement(Tag, rest, children)
     }
   return {
     motion: new Proxy({}, { get: (_target, tag: string) => passthrough(tag) }),
@@ -53,7 +53,7 @@ const FIXED_JOKE = { setup: '¿Por qué?', punchline: '¡Porque sí!' }
 vi.mock('../lib/jokes', () => ({ getRandomJoke: () => FIXED_JOKE }))
 
 const makeExercise = (): Exercise => ({
-  type: 'identify',
+  type: 'mixed',
   fractionA: { numerator: 1, denominator: 2 },
   answer: '1/2',
   displayAnswer: '1/2',
