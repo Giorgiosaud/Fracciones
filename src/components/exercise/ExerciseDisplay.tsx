@@ -149,7 +149,7 @@ export function OptionGrid({ options, locked, onSelect, wrongSelections, correct
             whileTap={canClick && !isWrong ? { scale: 0.93, x: 2, y: 2 } : {}}
             onClick={() => canClick && !isWrong && onSelect(opt)}
             style={style}
-            className={`rounded-xl px-2 sm:px-3 py-2 sm:py-3 flex items-center justify-center min-h-[44px] sm:min-h-[56px] transition-colors font-display ${extraCls}`}
+            className={`rounded-xl px-2 sm:px-3 py-2 sm:py-3 flex items-center justify-center min-h-[44px] sm:min-h-[56px] transition-colors ${extraCls}`}
             title={locked ? `Opción ${i + 1}` : ''}
           >
             <OptionLabel text={opt} />
