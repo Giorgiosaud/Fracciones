@@ -467,20 +467,25 @@ export default function Game({ config, onGameEnd }: Props) {
     }
   }, [feedback, selectedOption, secondChance, lockedPlayer, scores, hp, comebackPlayer, applyComebackFail, applyNoScore])
 
+  // Shared buzz logic — used by both keyboard (Q/P) and on-screen touch buttons
+  const buzzPlayer = useCallback((key: PlayerKey) => {
+    if (phase !== 'waiting') return
+    if (comebackPlayer && key !== comebackPlayer) return
+    setLockedPlayer(key)
+    setPhase('locked')
+    setTimerKey(k => k + 1)
+    setStreak(s => ({ ...s, [key === 'q' ? 'p' : 'q']: 0 }))
+    sfx.playBuzzer(key)
+    fireFlash(key === 'q' ? 'rgba(29,155,240,0.5)' : 'rgba(255,59,59,0.5)')
+    bgm.start()
+  }, [phase, comebackPlayer, sfx, fireFlash, bgm])
+
   // Keyboard: Q/P to buzz, number keys 1-6 to pick option
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (phase === 'waiting') {
-        const key = e.key.toLowerCase() as PlayerKey
-        if (comebackPlayer && key !== comebackPlayer) return
-        if (key === 'q' || key === 'p') {
-          setLockedPlayer(key)
-          setPhase('locked')
-          setTimerKey(k => k + 1)
-          setStreak(s => ({ ...s, [key === 'q' ? 'p' : 'q']: 0 }))
-          sfx.playBuzzer(key)
-          fireFlash(key === 'q' ? 'rgba(29,155,240,0.5)' : 'rgba(255,59,59,0.5)')
-        }
+      const key = e.key.toLowerCase()
+      if (phase === 'waiting' && (key === 'q' || key === 'p')) {
+        buzzPlayer(key as PlayerKey)
       }
       if (phase === 'locked' && lockedPlayer && !feedback && !selectedOption) {
         const num = parseInt(e.key)
@@ -491,14 +496,11 @@ export default function Game({ config, onGameEnd }: Props) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [phase, comebackPlayer, lockedPlayer, feedback, selectedOption, exercise, handleSelect, sfx, fireFlash])
+  }, [phase, lockedPlayer, feedback, selectedOption, exercise, handleSelect, buzzPlayer])
 
-  // Auto-start BGM on first interaction (buzzer press starts it via the keyboard handler above)
-  // We start it lazily on first keydown so AudioContext is allowed by browser
+  // Stop BGM when leaving the game screen
   useEffect(() => {
-    const onFirst = () => { bgm.start(); window.removeEventListener('keydown', onFirst) }
-    window.addEventListener('keydown', onFirst)
-    return () => { window.removeEventListener('keydown', onFirst); bgm.stop() }
+    return () => { bgm.stop() }
   }, [bgm])
 
   // Show hint after 8s when a player is locked and hasn't answered
@@ -547,8 +549,46 @@ export default function Game({ config, onGameEnd }: Props) {
     )
   }
 
+  const buzzActive = (pk: PlayerKey) => phase === 'waiting' && (!inComeback || comebackPlayer === pk)
+
   return (
     <div className="h-screen overflow-hidden text-white flex flex-col" style={{ background: 'var(--bg)' }}>
+      {/* Rotate-device prompt: shown only on touch devices held in portrait */}
+      <div className="rotate-prompt">
+        <span className="text-5xl mb-3">🔄</span>
+        <p className="font-display text-xl tracking-widest text-center px-6">GIRA TU DISPOSITIVO PARA JUGAR</p>
+      </div>
+
+      {/* On-screen buzzer buttons — touch devices only */}
+      <button
+        type="button"
+        className="touch-buzzer touch-buzzer-left"
+        style={{
+          background: lockedPlayer === 'q' ? 'var(--p1)' : 'rgba(29,155,240,0.18)',
+          borderColor: 'var(--p1)',
+          opacity: buzzActive('q') ? 1 : 0.35,
+        }}
+        disabled={!buzzActive('q')}
+        onPointerDown={() => buzzPlayer('q')}
+      >
+        <span className="font-display text-xl break-words leading-tight">{p1}</span>
+        <span className="font-display text-[10px] tracking-widest opacity-70">TOCA PARA RESPONDER</span>
+      </button>
+      <button
+        type="button"
+        className="touch-buzzer touch-buzzer-right"
+        style={{
+          background: lockedPlayer === 'p' ? 'var(--p2)' : 'rgba(255,59,59,0.18)',
+          borderColor: 'var(--p2)',
+          opacity: buzzActive('p') ? 1 : 0.35,
+        }}
+        disabled={!buzzActive('p')}
+        onPointerDown={() => buzzPlayer('p')}
+      >
+        <span className="font-display text-xl break-words leading-tight">{p2}</span>
+        <span className="font-display text-[10px] tracking-widest opacity-70">TOCA PARA RESPONDER</span>
+      </button>
+
       <ScreenFlash color={flash.color} trigger={flash.trigger} />
       <FloatingDamage value={dmgQ.value} side="left" trigger={dmgQ.trigger} />
       <FloatingDamage value={dmgP.value} side="right" trigger={dmgP.trigger} />
