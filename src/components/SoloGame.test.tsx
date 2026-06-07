@@ -52,8 +52,8 @@ vi.mock('../hooks/useBGM', () => ({
 const FIXED_JOKE = { setup: '¿Por qué?', punchline: '¡Porque sí!' }
 vi.mock('../lib/jokes', () => ({ getRandomJoke: () => FIXED_JOKE }))
 
-const submitScore = vi.fn().mockResolvedValue(true)
-vi.mock('../lib/leaderboardApi', () => ({ submitScore: (...args: unknown[]) => submitScore(...args) }))
+const submitOrQueueScore = vi.fn().mockResolvedValue(undefined)
+vi.mock('../lib/scoreSync', () => ({ submitOrQueueScore: (...args: unknown[]) => submitOrQueueScore(...args) }))
 
 // Leaderboard fetches on mount and renders async state — irrelevant to
 // SoloGame's own behavior, so render a static placeholder instead.
@@ -85,7 +85,7 @@ const HIGHSCORE_KEY = 'fracciones:soloHighScore'
 
 beforeEach(() => {
   localStorage.clear()
-  submitScore.mockClear()
+  submitOrQueueScore.mockClear()
   vi.useFakeTimers()
 })
 
@@ -223,7 +223,7 @@ describe('SoloGame', () => {
     fireEvent.click(screen.getByText('SALIR'))
 
     // timerSeconds: 30 → timer multiplier ×1.3, streak 1 → no streak bonus: round(10 × 1.3) = 13
-    expect(submitScore).toHaveBeenCalledWith({ name: 'Jugador', questionLimit: 20, streak: 1, accuracy: 100, score: 13, total: 1 })
+    expect(submitOrQueueScore).toHaveBeenCalledWith({ name: 'Jugador', questionLimit: 20, streak: 1, accuracy: 100, score: 13, total: 1, idempotencyKey: expect.any(String) })
   })
 
   it('rewards harder (shorter) timer settings with a higher score multiplier', () => {
@@ -236,7 +236,7 @@ describe('SoloGame', () => {
     fireEvent.click(screen.getByText('SALIR'))
 
     // timerSeconds: 10 → timer multiplier ×1.5, streak 1 → no streak bonus: round(10 × 1.5) = 15
-    expect(submitScore).toHaveBeenCalledWith({ name: 'Jugador', questionLimit: 20, streak: 1, accuracy: 100, score: 15, total: 1 })
+    expect(submitOrQueueScore).toHaveBeenCalledWith({ name: 'Jugador', questionLimit: 20, streak: 1, accuracy: 100, score: 15, total: 1, idempotencyKey: expect.any(String) })
   })
 
   it('shows the live score and streak multiplier badge in the header', () => {

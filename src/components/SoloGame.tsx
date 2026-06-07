@@ -5,7 +5,7 @@ import type { Exercise, GameConfig } from '../lib/types'
 import { generateExercise, validateAnswer } from '../lib/exercises'
 import { getRandomJoke } from '../lib/jokes'
 import { loadSoloHighScore, saveSoloHighScore } from '../lib/soloStorage'
-import { submitScore } from '../lib/leaderboardApi'
+import { submitOrQueueScore } from '../lib/scoreSync'
 import FractionVisualizer from './FractionVisualizer'
 import Leaderboard from './Leaderboard'
 import Timer from './Timer'
@@ -192,6 +192,9 @@ export default function SoloGame({ config, onExit }: Props) {
   const accuracy = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0
 
   const sessionPersistedRef = useRef(false)
+  // One id per played session — stable across re-renders and reused if the
+  // submission has to be queued and retried later (see scoreSync.ts).
+  const sessionIdRef = useRef(crypto.randomUUID())
 
   // Persist + submit as soon as the session ends (summary shown) so the
   // leaderboard the player sees right away already reflects this run —
@@ -202,7 +205,7 @@ export default function SoloGame({ config, onExit }: Props) {
     const updated = saveSoloHighScore(record, { streak: bestStreak, correct: correctCount, total: totalCount })
     setRecord(updated)
     // Fire-and-forget — the leaderboard is a bonus, not a blocker for exiting.
-    submitScore({ name: config.player1Name || 'Jugador', questionLimit: config.questionLimit, streak: bestStreak, accuracy, score: points, total: totalCount })
+    submitOrQueueScore({ name: config.player1Name || 'Jugador', questionLimit: config.questionLimit, streak: bestStreak, accuracy, score: points, total: totalCount, idempotencyKey: sessionIdRef.current })
   }, [showSummary, record, bestStreak, correctCount, totalCount, accuracy, points, config.player1Name, config.questionLimit])
 
   const persistAndExit = useCallback(() => {
