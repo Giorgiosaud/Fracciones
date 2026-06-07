@@ -156,6 +156,7 @@ export default function SoloGame({ config, onExit }: Props) {
 
   const closeJoke = useCallback(() => {
     if (jokeTimer.current) clearTimeout(jokeTimer.current)
+    setJoke(null)
     advanceRound(jokeRoundRef.current)
   }, [advanceRound])
 
