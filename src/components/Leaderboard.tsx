@@ -4,6 +4,12 @@ import type { LeaderboardEntry } from '../lib/types'
 
 type Status = 'loading' | 'ready' | 'error' | 'empty'
 
+// Mirrors the Home-screen timer options — shows kids what difficulty a
+// score was set under (0 = no limit, scored at half rate).
+function formatTimer(seconds: number): string {
+  return seconds === 0 ? '∞' : `${seconds}s`
+}
+
 interface Props {
   questionLimit: number
   limit?: number
@@ -43,6 +49,7 @@ export default function Leaderboard({ questionLimit, limit = 10 }: Props) {
               <span className="flex items-center gap-2">
                 <span className="text-white/40 w-4 text-right">{i + 1}</span>
                 <span className="font-bold">{entry.name}</span>
+                <span className="text-white/40 text-xs">⏱ {formatTimer(entry.bestTimerSeconds)}</span>
               </span>
               <span className="text-[#FFD700]">{entry.bestScore} pts <span className="text-white/40">· {entry.bestStreak} 🔥</span></span>
             </li>

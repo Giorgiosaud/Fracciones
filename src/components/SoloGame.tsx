@@ -207,8 +207,8 @@ export default function SoloGame({ config, onExit }: Props) {
     const updated = saveSoloHighScore(record, { streak: bestStreak, correct: correctCount, total: totalCount })
     setRecord(updated)
     // Fire-and-forget — the leaderboard is a bonus, not a blocker for exiting.
-    submitOrQueueScore({ name: config.player1Name || 'Jugador', questionLimit: config.questionLimit, streak: bestStreak, accuracy, score: points, total: totalCount, idempotencyKey: sessionIdRef.current })
-  }, [showSummary, record, bestStreak, correctCount, totalCount, accuracy, points, config.player1Name, config.questionLimit])
+    submitOrQueueScore({ name: config.player1Name || 'Jugador', questionLimit: config.questionLimit, timerSeconds: config.timerSeconds, streak: bestStreak, accuracy, score: points, total: totalCount, idempotencyKey: sessionIdRef.current })
+  }, [showSummary, record, bestStreak, correctCount, totalCount, accuracy, points, config.player1Name, config.questionLimit, config.timerSeconds])
 
   const persistAndExit = useCallback(() => {
     if (jokeTimer.current) clearTimeout(jokeTimer.current)

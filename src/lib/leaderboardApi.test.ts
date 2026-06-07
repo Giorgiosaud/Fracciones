@@ -44,7 +44,7 @@ describe('checkName', () => {
 })
 
 describe('submitScore', () => {
-  const submission = { name: 'Ana', questionLimit: 20, streak: 5, accuracy: 80, score: 140, total: 12, idempotencyKey: 'session-abc' }
+  const submission = { name: 'Ana', questionLimit: 20, timerSeconds: 20, streak: 5, accuracy: 80, score: 140, total: 12, idempotencyKey: 'session-abc' }
 
   it('posts the submission with the device token and returns true on success', async () => {
     vi.mocked(fetch).mockResolvedValue({ ok: true } as Response)

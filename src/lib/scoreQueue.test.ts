@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { loadPendingScores, enqueuePendingScore, removePendingScore } from './scoreQueue'
 
 const submission = (idempotencyKey: string) => ({
-  name: 'Ana', questionLimit: 20, streak: 5, accuracy: 80, score: 140, total: 12, idempotencyKey,
+  name: 'Ana', questionLimit: 20, timerSeconds: 20, streak: 5, accuracy: 80, score: 140, total: 12, idempotencyKey,
 })
 
 beforeEach(() => {

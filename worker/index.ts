@@ -3,12 +3,14 @@ const MIN_ATTEMPTS_FOR_ACCURACY = 10
 const DEFAULT_TOP_LIMIT = 10
 const MAX_TOP_LIMIT = 50
 const QUESTION_LIMITS = [10, 20, 30, 50]
+const TIMER_SECONDS_OPTIONS = [0, 10, 15, 20, 30, 60]
 
 interface SubmitBody {
   name?: unknown
   ownerToken?: unknown
   idempotencyKey?: unknown
   questionLimit?: unknown
+  timerSeconds?: unknown
   streak?: unknown
   accuracy?: unknown
   score?: unknown
@@ -47,6 +49,16 @@ function readQuestionLimit(value: unknown): number {
   const n = Math.trunc(Number(value))
   if (!Number.isFinite(n)) return QUESTION_LIMITS[0]
   return QUESTION_LIMITS.reduce((closest, candidate) =>
+    Math.abs(candidate - n) < Math.abs(closest - n) ? candidate : closest
+  )
+}
+
+// Same snap-to-known-set treatment as readQuestionLimit — the timer is one
+// of a fixed set of Home-screen options (including 0 for "no limit").
+function readTimerSeconds(value: unknown): number {
+  const n = Math.trunc(Number(value))
+  if (!Number.isFinite(n)) return TIMER_SECONDS_OPTIONS[TIMER_SECONDS_OPTIONS.length - 1]
+  return TIMER_SECONDS_OPTIONS.reduce((closest, candidate) =>
     Math.abs(candidate - n) < Math.abs(closest - n) ? candidate : closest
   )
 }
@@ -95,6 +107,7 @@ async function handleSubmit(request: Request, db: D1Database): Promise<Response>
   if (alreadyProcessed) return jsonResponse({ ok: true, duplicate: true })
 
   const questionLimit = readQuestionLimit(body.questionLimit)
+  const timerSeconds = readTimerSeconds(body.timerSeconds)
   const streak = clampInt(body.streak, 0, 100000)
   const total = clampInt(body.total, 0, 100000)
   const accuracy = total >= MIN_ATTEMPTS_FOR_ACCURACY ? clampInt(body.accuracy, 0, 100) : 0
@@ -111,16 +124,17 @@ async function handleSubmit(request: Request, db: D1Database): Promise<Response>
       .bind(name, ownerToken, updatedAt),
     db
       .prepare(
-        `INSERT INTO scores (name, question_limit, best_streak, best_accuracy, best_score, total_sessions, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, 1, ?6)
+        `INSERT INTO scores (name, question_limit, best_streak, best_accuracy, best_score, best_timer_seconds, total_sessions, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?7, 1, ?6)
          ON CONFLICT(name, question_limit) DO UPDATE SET
            best_streak = MAX(best_streak, ?3),
            best_accuracy = MAX(best_accuracy, ?4),
            best_score = MAX(best_score, ?5),
+           best_timer_seconds = CASE WHEN ?5 > best_score THEN ?7 ELSE best_timer_seconds END,
            total_sessions = total_sessions + 1,
            updated_at = ?6`
       )
-      .bind(name, questionLimit, streak, accuracy, score, updatedAt),
+      .bind(name, questionLimit, streak, accuracy, score, updatedAt, timerSeconds),
     db
       .prepare(`INSERT INTO processed_submissions (idempotency_key, created_at) VALUES (?1, ?2)`)
       .bind(idempotencyKey, updatedAt),
@@ -136,7 +150,7 @@ async function handleTop(request: Request, db: D1Database): Promise<Response> {
 
   const { results } = await db
     .prepare(
-      `SELECT name, best_streak AS bestStreak, best_accuracy AS bestAccuracy, best_score AS bestScore, total_sessions AS totalSessions
+      `SELECT name, best_streak AS bestStreak, best_accuracy AS bestAccuracy, best_score AS bestScore, best_timer_seconds AS bestTimerSeconds, total_sessions AS totalSessions
        FROM scores
        WHERE question_limit = ?1
        ORDER BY best_score DESC, best_streak DESC

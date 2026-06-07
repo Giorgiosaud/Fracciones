@@ -4,6 +4,7 @@ import { getDeviceId } from './deviceId'
 export interface ScoreSubmission {
   name: string
   questionLimit: number
+  timerSeconds: number
   streak: number
   accuracy: number
   score: number

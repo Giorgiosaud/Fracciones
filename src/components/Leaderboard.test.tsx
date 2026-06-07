@@ -7,8 +7,8 @@ import type { LeaderboardEntry } from '../lib/types'
 vi.mock('../lib/leaderboardApi', () => ({ fetchTop: vi.fn() }))
 
 const ENTRIES: LeaderboardEntry[] = [
-  { name: 'Ana', bestStreak: 12, bestAccuracy: 90, bestScore: 320, totalSessions: 4 },
-  { name: 'Beto', bestStreak: 8, bestAccuracy: 75, bestScore: 210, totalSessions: 2 },
+  { name: 'Ana', bestStreak: 12, bestAccuracy: 90, bestScore: 320, bestTimerSeconds: 20, totalSessions: 4 },
+  { name: 'Beto', bestStreak: 8, bestAccuracy: 75, bestScore: 210, bestTimerSeconds: 0, totalSessions: 2 },
 ]
 
 beforeEach(() => {
@@ -23,6 +23,8 @@ describe('Leaderboard', () => {
     expect(await screen.findByText('Ana')).toBeInTheDocument()
     expect(screen.getByText('Beto')).toBeInTheDocument()
     expect(screen.getByText('320 pts', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('⏱ 20s', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('⏱ ∞', { exact: false })).toBeInTheDocument()
   })
 
   it('shows an empty state when there are no entries yet', async () => {

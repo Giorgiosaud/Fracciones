@@ -6,7 +6,7 @@ import { submitScore } from './leaderboardApi'
 vi.mock('./leaderboardApi', () => ({ submitScore: vi.fn() }))
 
 const submission = (idempotencyKey: string) => ({
-  name: 'Ana', questionLimit: 20, streak: 5, accuracy: 80, score: 140, total: 12, idempotencyKey,
+  name: 'Ana', questionLimit: 20, timerSeconds: 20, streak: 5, accuracy: 80, score: 140, total: 12, idempotencyKey,
 })
 
 beforeEach(() => {

@@ -18,6 +18,7 @@ export interface LeaderboardEntry {
   bestStreak: number
   bestAccuracy: number
   bestScore: number
+  bestTimerSeconds: number
   totalSessions: number
 }
 
