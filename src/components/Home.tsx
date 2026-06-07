@@ -174,7 +174,7 @@ export default function Home({ onStart }: Props) {
           TIEMPO POR PREGUNTA
         </span>
         <div className="flex gap-2 sm:gap-4">
-          {[10, 15, 20, 30].map(n => (
+          {[10, 15, 20, 30, 60].map(n => (
             <motion.button
               key={n}
               whileTap={{ scale: 0.92 }}
