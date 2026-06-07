@@ -10,10 +10,11 @@ export default function Home({ onStart }: Props) {
   const [player1Name, setPlayer1Name] = useState('Jugador 1')
   const [player2Name, setPlayer2Name] = useState('Jugador 2')
   const [pointsToWin, setPointsToWin] = useState(10)
+  const [timerSeconds, setTimerSeconds] = useState(20)
 
   const handleStart = () => {
     if (!player1Name.trim() || !player2Name.trim()) return
-    onStart({ player1Name: player1Name.trim(), player2Name: player2Name.trim(), pointsToWin })
+    onStart({ player1Name: player1Name.trim(), player2Name: player2Name.trim(), pointsToWin, timerSeconds })
   }
 
   return (
@@ -95,6 +96,34 @@ export default function Home({ onStart }: Props) {
               }`}
             >
               {n}
+            </motion.button>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Timer selector */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.32 }}
+        className="flex flex-col items-center gap-3"
+      >
+        <span className="font-display text-2xl text-white tracking-widest drop-shadow-[2px_2px_0_#000]">
+          TIEMPO POR PREGUNTA
+        </span>
+        <div className="flex gap-4">
+          {[10, 15, 20, 30].map(n => (
+            <motion.button
+              key={n}
+              whileTap={{ scale: 0.92 }}
+              onClick={() => setTimerSeconds(n)}
+              className={`w-20 h-14 rounded-xl font-display text-2xl transition-all btn-3d ${
+                timerSeconds === n
+                  ? 'bg-[#FFD700] text-black'
+                  : 'bg-[#1E1E38] text-white hover:bg-[#2a2a4a]'
+              }`}
+            >
+              {n}s
             </motion.button>
           ))}
         </div>

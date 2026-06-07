@@ -6,6 +6,7 @@ export interface GameConfig {
   player1Name: string
   player2Name: string
   pointsToWin: number
+  timerSeconds: number
 }
 
 export type ExerciseType = 'compare' | 'simplify' | 'amplify' | 'mixed'
