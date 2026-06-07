@@ -571,8 +571,10 @@ export default function Game({ config, onGameEnd }: Props) {
         disabled={!buzzActive('q')}
         onPointerDown={() => buzzPlayer('q')}
       >
-        <span className="font-display text-xl break-words leading-tight">{p1}</span>
-        <span className="font-display text-[10px] tracking-widest opacity-70">TOCA PARA RESPONDER</span>
+        <span className="touch-buzzer-label flex flex-col items-center gap-1">
+          <span className="font-display text-xl break-words leading-tight">{p1}</span>
+          <span className="font-display text-[10px] tracking-widest opacity-70">TOCA PARA RESPONDER</span>
+        </span>
       </button>
       <button
         type="button"
@@ -585,8 +587,10 @@ export default function Game({ config, onGameEnd }: Props) {
         disabled={!buzzActive('p')}
         onPointerDown={() => buzzPlayer('p')}
       >
-        <span className="font-display text-xl break-words leading-tight">{p2}</span>
-        <span className="font-display text-[10px] tracking-widest opacity-70">TOCA PARA RESPONDER</span>
+        <span className="touch-buzzer-label flex flex-col items-center gap-1">
+          <span className="font-display text-xl break-words leading-tight">{p2}</span>
+          <span className="font-display text-[10px] tracking-widest opacity-70">TOCA PARA RESPONDER</span>
+        </span>
       </button>
 
       <ScreenFlash color={flash.color} trigger={flash.trigger} />
@@ -597,7 +601,7 @@ export default function Game({ config, onGameEnd }: Props) {
         visible={showComebackEntrance}
       />
       {/* Header: key badge | health bar | round | health bar | key badge */}
-      <div className="flex items-center gap-1.5 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 border-b border-white/10 flex-shrink-0 overflow-x-auto" style={{ background: '#0a0a15' }}>
+      <div className="game-header flex items-center gap-1.5 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 border-b border-white/10 flex-shrink-0 overflow-x-auto" style={{ background: '#0a0a15' }}>
         {keyBadge('Q')}
         <HealthBar hp={hp.q} maxHp={MAX_HP} side="left" name={p1} streak={streak.q} shaking={shakingQ} />
         <div className="flex flex-col items-center gap-0.5 px-1 sm:px-3 flex-shrink-0">
@@ -661,26 +665,28 @@ export default function Game({ config, onGameEnd }: Props) {
       </AnimatePresence>
 
       {/* Exercise area */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-2 sm:gap-4 px-2 sm:px-4 relative min-h-0">
+      <div className="flex-1 flex flex-col items-center justify-center gap-2 sm:gap-4 px-2 sm:px-4 relative min-h-0 short-screen-area">
         <AnimatePresence mode="wait">
           <motion.div
             key={`${round}-${comebackCount}`}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="flex flex-col items-center gap-2 sm:gap-3 w-full max-w-2xl"
+            className="flex flex-col items-center gap-2 sm:gap-3 w-full max-w-2xl short-screen-content"
           >
-            <p className="font-display text-white/40 text-xs tracking-widest">{exerciseLabel(exercise)}</p>
+            <p className="font-display text-white/40 text-xs tracking-widest short-screen-hide">{exerciseLabel(exercise)}</p>
             <div
-              className="rounded-3xl px-5 sm:px-7 md:px-10 py-4 sm:py-5 md:py-6"
+              className="rounded-3xl px-5 sm:px-7 md:px-10 py-4 sm:py-5 md:py-6 short-screen-card"
               style={{ background: 'var(--surface)', border: '3px solid #000', boxShadow: '6px 6px 0 #000' }}
             >
               {renderExercise(exercise, exercise.type === 'compare' ? selectedOption : null)}
             </div>
-            <FractionVisualizer fraction={exercise.fractionA} color="#FFD700" />
+            <div className="short-screen-hide">
+              <FractionVisualizer fraction={exercise.fractionA} color="#FFD700" />
+            </div>
 
             {/* Options */}
-            <div className="flex flex-col items-center gap-1.5 w-full">
+            <div className="flex flex-col items-center gap-1.5 w-full short-screen-options">
               <OptionGrid
                 options={exercise.options}
                 locked={phase === 'locked' && !!lockedPlayer}

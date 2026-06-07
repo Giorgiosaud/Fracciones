@@ -18,14 +18,14 @@ export default function Home({ onStart }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 gap-4 sm:gap-6 md:gap-8 overflow-y-auto">
+    <div className="home-root min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 gap-4 sm:gap-6 md:gap-8 overflow-y-auto">
 
       {/* Title */}
       <motion.div
         initial={{ y: -40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', bounce: 0.5 }}
-        className="text-center"
+        className="text-center home-title"
       >
         <h1 className="font-display text-5xl sm:text-6xl md:text-8xl text-[#FFD700] drop-shadow-[4px_4px_0px_#000] tracking-wider leading-none">
           FRACCIONES
@@ -40,11 +40,11 @@ export default function Home({ onStart }: Props) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="flex gap-3 sm:gap-6 w-full max-w-xl"
+        className="home-players flex gap-3 sm:gap-6 w-full max-w-xl"
       >
         {/* Player 1 */}
-        <div className="flex-1 flex flex-col gap-2">
-          <div className="bg-[#1D9BF0] rounded-xl px-4 py-1 text-center card-3d">
+        <div className="flex-1 flex flex-col gap-2 home-player-block home-player-block-left">
+          <div className="bg-[#1D9BF0] rounded-xl px-4 py-1 text-center card-3d home-key-badge">
             <span className="font-display text-base sm:text-xl md:text-2xl text-white tracking-widest">TECLA Q</span>
           </div>
           <input
@@ -56,11 +56,11 @@ export default function Home({ onStart }: Props) {
           />
         </div>
 
-        <div className="flex items-center font-display text-2xl sm:text-3xl md:text-4xl text-[#FFD700] drop-shadow-[2px_2px_0_#000] pt-6">VS</div>
+        <div className="home-vs-divider flex items-center font-display text-2xl sm:text-3xl md:text-4xl text-[#FFD700] drop-shadow-[2px_2px_0_#000] pt-6">VS</div>
 
         {/* Player 2 */}
-        <div className="flex-1 flex flex-col gap-2">
-          <div className="bg-[#FF3B3B] rounded-xl px-4 py-1 text-center card-3d">
+        <div className="flex-1 flex flex-col gap-2 home-player-block home-player-block-right">
+          <div className="bg-[#FF3B3B] rounded-xl px-4 py-1 text-center card-3d home-key-badge">
             <span className="font-display text-base sm:text-xl md:text-2xl text-white tracking-widest">TECLA P</span>
           </div>
           <input
@@ -78,9 +78,9 @@ export default function Home({ onStart }: Props) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
-        className="flex flex-col items-center gap-2 sm:gap-3"
+        className="home-selector flex flex-col items-center gap-2 sm:gap-3"
       >
-        <span className="font-display text-lg sm:text-xl md:text-2xl text-white tracking-widest drop-shadow-[2px_2px_0_#000]">
+        <span className="home-selector-label font-display text-lg sm:text-xl md:text-2xl text-white tracking-widest drop-shadow-[2px_2px_0_#000]">
           PUNTOS PARA GANAR
         </span>
         <div className="flex gap-2 sm:gap-4">
@@ -106,9 +106,9 @@ export default function Home({ onStart }: Props) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.32 }}
-        className="flex flex-col items-center gap-2 sm:gap-3"
+        className="home-selector flex flex-col items-center gap-2 sm:gap-3"
       >
-        <span className="font-display text-lg sm:text-xl md:text-2xl text-white tracking-widest drop-shadow-[2px_2px_0_#000]">
+        <span className="home-selector-label font-display text-lg sm:text-xl md:text-2xl text-white tracking-widest drop-shadow-[2px_2px_0_#000]">
           TIEMPO POR PREGUNTA
         </span>
         <div className="flex gap-2 sm:gap-4">
@@ -137,7 +137,7 @@ export default function Home({ onStart }: Props) {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.96 }}
         onClick={handleStart}
-        className="bg-[#FFD700] text-black font-display text-3xl sm:text-4xl md:text-5xl px-8 sm:px-12 md:px-16 py-3 sm:py-4 rounded-2xl tracking-widest btn-3d"
+        className="home-start bg-[#FFD700] text-black font-display text-3xl sm:text-4xl md:text-5xl px-8 sm:px-12 md:px-16 py-3 sm:py-4 rounded-2xl tracking-widest btn-3d"
       >
         ¡JUGAR!
       </motion.button>

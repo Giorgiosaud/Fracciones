@@ -53,12 +53,120 @@ body::before {
 /* Bangers for display text */
 .font-display { font-family: 'Bangers', cursive; letter-spacing: 0.05em; }
 
+/* Compact the home/setup screen on short landscape screens so it fits
+   without scrolling (phones/small tablets held sideways) */
+@media (max-height: 460px) and (orientation: landscape) {
+  .home-root {
+    gap: 4px !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+  }
+  .home-title h1 {
+    font-size: 1.75rem !important;
+  }
+  .home-title h2 {
+    font-size: 1.1rem !important;
+    margin-top: 0 !important;
+  }
+  .home-players {
+    gap: 12px !important;
+  }
+  .home-player-block input {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+  .home-player-block {
+    gap: 4px !important;
+  }
+  .home-selector {
+    gap: 4px !important;
+  }
+  .home-selector-label {
+    font-size: 0.75rem !important;
+  }
+  .home-selector button {
+    width: 44px !important;
+    height: 32px !important;
+    font-size: 1rem !important;
+  }
+  .home-start {
+    font-size: 1.25rem !important;
+    padding: 6px 20px !important;
+  }
+}
+
+/* Compact the game layout on short landscape screens (phones/small tablets)
+   so the exercise content doesn't overflow into the header */
+@media (max-height: 460px) and (orientation: landscape) {
+  .game-header {
+    padding-top: 4px;
+    padding-bottom: 4px;
+    gap: 4px;
+  }
+  .short-screen-area {
+    gap: 4px !important;
+  }
+  .short-screen-content {
+    gap: 4px !important;
+  }
+  .short-screen-hide {
+    display: none !important;
+  }
+  .short-screen-card {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+  }
+  .short-screen-options button {
+    min-height: 32px !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+}
+
 /* On-screen buzzer buttons: only shown on touch devices (no hover / coarse pointer) */
 .touch-buzzer {
   display: none;
 }
 .rotate-prompt {
   display: none;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  /* Touch devices buzz by tapping on-screen, so the keyboard-key badges are redundant */
+  .home-key-badge {
+    display: none;
+  }
+
+  @media (max-height: 460px) and (orientation: landscape) {
+    /* Move player name panels to the sides — mirroring the in-game buzzer
+       layout — and free the center for the match settings & start button */
+    .home-players {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      gap: 0;
+      max-width: none;
+    }
+    .home-vs-divider {
+      display: none;
+    }
+    .home-player-block {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 130px;
+      pointer-events: auto;
+      gap: 6px;
+    }
+    .home-player-block-left { left: 10px; }
+    .home-player-block-right { right: 10px; }
+    .home-player-block-left {
+      transform: translateY(-50%) rotate(90deg);
+    }
+    .home-player-block-right {
+      transform: translateY(-50%) rotate(-90deg);
+    }
+  }
 }
 
 @media (hover: none) and (pointer: coarse) {
@@ -88,6 +196,15 @@ body::before {
   }
   .touch-buzzer-left { left: 10px; }
   .touch-buzzer-right { right: 10px; }
+
+  /* Orient each player's label toward them — readable when sitting at their
+     side of the device, by rotating the text to face outward/toward them */
+  .touch-buzzer-left .touch-buzzer-label {
+    transform: rotate(90deg);
+  }
+  .touch-buzzer-right .touch-buzzer-label {
+    transform: rotate(-90deg);
+  }
 
   /* Prompt to rotate the device into landscape on phones/tablets in portrait */
   @media (orientation: portrait) {
