@@ -24,6 +24,11 @@ export default defineConfig({
             workbox: {
               globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
               navigateFallbackDenylist: [/^\/api\//],
+              // Each build hashes precached assets into a fresh cache name —
+              // this just makes sure the *previous* build's cache is dropped
+              // once the new service worker activates, so kids' devices don't
+              // accumulate stale app-shell versions across deploys.
+              cleanupOutdatedCaches: true,
             },
             manifest: {
               name: 'Fracciones VS',
