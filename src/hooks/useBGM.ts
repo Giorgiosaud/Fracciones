@@ -115,14 +115,14 @@ export function useBGM() {
   const bpmRef = useRef(138)
   const dangerRef = useRef(false)
   const [muted, setMuted] = useState(false)
-  const [volume, setVolumeState] = useState(0.5)
+  const [volume, setVolumeState] = useState(0.35)
 
   const getCtx = useCallback(() => {
     if (!ctxRef.current) {
       ctxRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
       masterRef.current = ctxRef.current.createGain()
       masterRef.current.connect(ctxRef.current.destination)
-      masterRef.current.gain.value = 0.5
+      masterRef.current.gain.value = 0.35
     }
     return { ctx: ctxRef.current, master: masterRef.current! }
   }, [])

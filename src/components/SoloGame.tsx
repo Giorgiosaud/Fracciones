@@ -140,11 +140,14 @@ export default function SoloGame({ config, onExit }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [phase, feedback, selectedOption, exercise, handleSelect])
 
-  // Start BGM immediately — no buzz-in step in solo mode
+  // Start BGM immediately — no buzz-in step in solo mode.
+  // Depend on the stable start/stop refs (not the bgm object, which is a new
+  // reference on every render) so the loop runs once and isn't restarted on
+  // top of itself each time an answer updates state — that caused overlap.
   useEffect(() => {
     bgm.start()
     return () => { bgm.stop() }
-  }, [bgm])
+  }, [bgm.start, bgm.stop])
 
   // Show hint after 8s without an answer
   useEffect(() => {

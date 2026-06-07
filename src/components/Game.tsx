@@ -329,10 +329,14 @@ export default function Game({ config, onGameEnd }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [phase, lockedPlayer, feedback, selectedOption, exercise, handleSelect, buzzPlayer])
 
-  // Stop BGM when leaving the game screen
+  // Stop BGM when leaving the game screen.
+  // Depend on the stable stop ref (not the bgm object, which is a new
+  // reference on every render) — otherwise this cleanup fired on every
+  // state update, and the next buzzPlayer() would start a second loop on
+  // top of oscillators the previous loop had already scheduled.
   useEffect(() => {
     return () => { bgm.stop() }
-  }, [bgm])
+  }, [bgm.stop])
 
   // Show hint after 8s when a player is locked and hasn't answered
   useEffect(() => {
