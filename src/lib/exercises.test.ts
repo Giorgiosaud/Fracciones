@@ -44,11 +44,13 @@ describe.each(['add', 'subtract'] as const)('%s exercise', (type) => {
     throw new Error(`no ${type} exercise generated in 200 tries`)
   }
 
-  it('has fractionA, fractionB and a fraction-shaped answer', () => {
+  it('has fractionA, fractionB and a fraction- or whole-number-shaped answer', () => {
     const ex = findExercise()
     expect(ex.fractionA).toBeDefined()
     expect(ex.fractionB).toBeDefined()
-    expect(ex.answer).toMatch(/^-?\d+\/\d+$/)
+    // Whole-number results (e.g. 1/2 - 1/2) render as plain integers ("0",
+    // "2"), not as "0/1" — that's how a kid would naturally write them.
+    expect(ex.answer).toMatch(/^-?\d+(\/\d+)?$/)
     expect(ex.displayAnswer).toBe(ex.answer)
   })
 

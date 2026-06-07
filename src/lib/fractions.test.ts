@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { compareFractions, simplifyFraction, addFractions, subtractFractions, gcd, normalizeAnswer } from './fractions'
+import { compareFractions, simplifyFraction, addFractions, subtractFractions, fractionToString, gcd, normalizeAnswer } from './fractions'
 
 describe('gcd', () => {
   it('returns greatest common divisor', () => {
@@ -27,6 +27,18 @@ describe('simplifyFraction', () => {
   })
   it('leaves already-reduced fraction unchanged', () => {
     expect(simplifyFraction({ numerator: 3, denominator: 7 })).toEqual({ numerator: 3, denominator: 7 })
+  })
+})
+
+describe('fractionToString', () => {
+  it.each([
+    [{ numerator: 3, denominator: 4 }, '3/4'],
+    // whole-number results (denominator 1) render as plain integers — a kid
+    // writes "0" or "2", not "0/1" or "2/1", e.g. for 1/2 - 1/2 or 3/2 + 1/2
+    [{ numerator: 0, denominator: 1 }, '0'],
+    [{ numerator: 2, denominator: 1 }, '2'],
+  ])('renders %j as %s', (frac, expected) => {
+    expect(fractionToString(frac)).toBe(expected)
   })
 })
 

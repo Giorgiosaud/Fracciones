@@ -30,6 +30,7 @@ export function simplifyFraction(f: FractionValue): FractionValue {
 }
 
 export function fractionToString(f: FractionValue): string {
+  if (f.denominator === 1) return `${f.numerator}`
   return `${f.numerator}/${f.denominator}`
 }
 
