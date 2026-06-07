@@ -26,7 +26,9 @@ const newExercise = (r: number) => generateExercise(Math.ceil(r / 3))
 const BASE_POINTS = 10
 
 // Rewards harder timer settings — baseline ×1.0 at 60s, +0.1 per 10s less.
+// "No limit" (0) trades the time pressure away, so it's worth half points.
 function timerMultiplier(timerSeconds: number) {
+  if (timerSeconds === 0) return 0.5
   return 1 + ((60 - timerSeconds) / 10) * 0.1
 }
 
@@ -326,7 +328,7 @@ export default function SoloGame({ config, onExit }: Props) {
                 revealCorrect={revealCorrect}
                 color="blue"
               />
-              {phase === 'answering' && !feedback && (
+              {phase === 'answering' && !feedback && config.timerSeconds > 0 && (
                 <div className="mt-1">
                   <Timer
                     key={timerKey}

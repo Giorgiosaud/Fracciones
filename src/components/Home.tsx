@@ -103,7 +103,10 @@ export default function Home({ onStart }: Props) {
           <motion.button
             key={key}
             whileTap={{ scale: 0.94 }}
-            onClick={() => setMode(key)}
+            onClick={() => {
+              setMode(key)
+              if (key === 'multiplayer' && timerSeconds === 0) setTimerSeconds(60)
+            }}
             className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl font-display text-sm sm:text-base tracking-widest btn-3d transition-all ${
               mode === key ? 'bg-[#FFD700] text-black' : 'bg-[#1E1E38] text-white hover:bg-[#2a2a4a]'
             }`}
@@ -273,7 +276,7 @@ export default function Home({ onStart }: Props) {
           TIEMPO POR PREGUNTA
         </span>
         <div className="flex gap-2 sm:gap-4">
-          {[10, 15, 20, 30, 60].map(n => (
+          {[...[10, 15, 20, 30, 60], ...(mode === 'solo' ? [0] : [])].map(n => (
             <motion.button
               key={n}
               whileTap={{ scale: 0.92 }}
@@ -284,10 +287,15 @@ export default function Home({ onStart }: Props) {
                   : 'bg-[#1E1E38] text-white hover:bg-[#2a2a4a]'
               }`}
             >
-              {n}s
+              {n === 0 ? '∞' : `${n}s`}
             </motion.button>
           ))}
         </div>
+        {timerSeconds === 0 && mode === 'solo' && (
+          <p className="text-white/40 text-xs sm:text-sm text-center px-2">
+            Sin límite de tiempo — los puntos valen la mitad
+          </p>
+        )}
       </motion.div>
 
       {/* Start */}
