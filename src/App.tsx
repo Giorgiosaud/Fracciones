@@ -8,7 +8,7 @@ import type { GameConfig, PlayerKey, Screen, Scores } from './lib/types'
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('home')
-  const [config, setConfig] = useState<GameConfig>({ mode: 'multiplayer', player1Name: 'Jugador 1', player2Name: 'Jugador 2', pointsToWin: 10, timerSeconds: 20, questionLimit: 20 })
+  const [config, setConfig] = useState<GameConfig>({ mode: 'multiplayer', player1Name: 'Jugador 1', player2Name: 'Jugador 2', pointsToWin: 10, timerSeconds: 60, questionLimit: 20 })
   const [finalScores, setFinalScores] = useState<Scores>({ q: 0, p: 0 })
   const [winner, setWinner] = useState<PlayerKey>('q')
 

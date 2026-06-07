@@ -38,7 +38,7 @@ export default function Home({ onStart }: Props) {
   const [player1Name, setPlayer1Name] = useState(saved.player1Name)
   const [player2Name, setPlayer2Name] = useState(saved.player2Name)
   const [pointsToWin, setPointsToWin] = useState(10)
-  const [timerSeconds, setTimerSeconds] = useState(20)
+  const [timerSeconds, setTimerSeconds] = useState(60)
   const [questionLimit, setQuestionLimit] = useState(20)
   const [nameError, setNameError] = useState<string | null>(null)
   const [checkingName, setCheckingName] = useState(false)
