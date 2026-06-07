@@ -10,6 +10,15 @@ export interface GameConfig {
   player2Name: string
   pointsToWin: number
   timerSeconds: number
+  questionLimit: number
+}
+
+export interface LeaderboardEntry {
+  name: string
+  bestStreak: number
+  bestAccuracy: number
+  bestScore: number
+  totalSessions: number
 }
 
 export interface SoloHighScore {

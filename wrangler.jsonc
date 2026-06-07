@@ -1,13 +1,22 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "fracciones-vs",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-06-07",
   "observability": {
     "enabled": true
   },
   "assets": {
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS"
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "fracciones-leaderboard",
+      "database_id": "de2ea1f0-3940-4389-9cb8-6675ed751f90"
+    }
+  ],
   "compatibility_flags": [
     "nodejs_compat"
   ],

@@ -5,7 +5,9 @@ import type { Exercise, GameConfig } from '../lib/types'
 import { generateExercise, validateAnswer } from '../lib/exercises'
 import { getRandomJoke } from '../lib/jokes'
 import { loadSoloHighScore, saveSoloHighScore } from '../lib/soloStorage'
+import { submitScore } from '../lib/leaderboardApi'
 import FractionVisualizer from './FractionVisualizer'
+import Leaderboard from './Leaderboard'
 import Timer from './Timer'
 import { useSoundFX } from '../hooks/useSoundFX'
 import { useBGM } from '../hooks/useBGM'
@@ -21,6 +23,15 @@ type Phase = 'answering' | 'feedback'
 
 const newExercise = (r: number) => generateExercise(Math.ceil(r / 3))
 
+const BASE_POINTS = 10
+
+// Same streak-reward curve as VS mode's damage multiplier (Game.tsx calcDamage)
+// — a streak of 3+ scores progressively more points per correct answer.
+function calcPoints(streakAfterAnswer: number) {
+  const multiplier = streakAfterAnswer >= 3 ? 1 + (streakAfterAnswer - 2) * 0.1 : 1
+  return Math.round(BASE_POINTS * multiplier)
+}
+
 export default function SoloGame({ config, onExit }: Props) {
   const [round, setRound] = useState(1)
   const [exercise, setExercise] = useState<Exercise>(() => generateExercise(1))
@@ -31,6 +42,7 @@ export default function SoloGame({ config, onExit }: Props) {
   const [timerKey, setTimerKey] = useState(0)
   const [showHint, setShowHint] = useState(false)
 
+  const [points, setPoints] = useState(0)
   const [correctCount, setCorrectCount] = useState(0)
   const [totalCount, setTotalCount] = useState(0)
   const [streak, setStreak] = useState(0)
@@ -42,6 +54,7 @@ export default function SoloGame({ config, onExit }: Props) {
   const [joke, setJoke] = useState<{ setup: string; punchline: string } | null>(null)
   const jokeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const jokeRoundRef = useRef<number>(0)
+  const autoSummaryShownRef = useRef(false)
 
   const sfx = useSoundFX()
   const bgm = useBGM()
@@ -92,6 +105,7 @@ export default function SoloGame({ config, onExit }: Props) {
       const nextStreak = streak + 1
       setCorrectCount(c => c + 1)
       setStreak(nextStreak)
+      setPoints(p => p + calcPoints(nextStreak))
       setFeedback('correct')
       sfx.playCorrect()
       if (nextStreak >= 3) sfx.playStreakHit(nextStreak)
@@ -162,14 +176,50 @@ export default function SoloGame({ config, onExit }: Props) {
     advanceRound(jokeRoundRef.current)
   }, [advanceRound])
 
-  const persistAndExit = useCallback(() => {
-    const updated = saveSoloHighScore(record, { streak: bestStreak, correct: correctCount, total: totalCount })
-    setRecord(updated)
-    if (jokeTimer.current) clearTimeout(jokeTimer.current)
-    onExit()
-  }, [record, bestStreak, correctCount, totalCount, onExit])
+  useEffect(() => {
+    if (totalCount >= config.questionLimit && !autoSummaryShownRef.current) {
+      autoSummaryShownRef.current = true
+      setShowSummary(true)
+    }
+  }, [totalCount, config.questionLimit])
 
   const accuracy = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0
+
+  const sessionPersistedRef = useRef(false)
+
+  // Persist + submit as soon as the session ends (summary shown) so the
+  // leaderboard the player sees right away already reflects this run —
+  // not only after they choose to restart or exit.
+  useEffect(() => {
+    if (!showSummary || sessionPersistedRef.current) return
+    sessionPersistedRef.current = true
+    const updated = saveSoloHighScore(record, { streak: bestStreak, correct: correctCount, total: totalCount })
+    setRecord(updated)
+    // Fire-and-forget — the leaderboard is a bonus, not a blocker for exiting.
+    submitScore({ name: config.player1Name || 'Jugador', questionLimit: config.questionLimit, streak: bestStreak, accuracy, score: points, total: totalCount })
+  }, [showSummary, record, bestStreak, correctCount, totalCount, accuracy, points, config.player1Name, config.questionLimit])
+
+  const persistAndExit = useCallback(() => {
+    if (jokeTimer.current) clearTimeout(jokeTimer.current)
+    onExit()
+  }, [onExit])
+
+  const restartSession = useCallback(() => {
+    if (jokeTimer.current) clearTimeout(jokeTimer.current)
+    sessionPersistedRef.current = false
+    autoSummaryShownRef.current = false
+    setRound(1)
+    setPoints(0)
+    setCorrectCount(0)
+    setTotalCount(0)
+    setStreak(0)
+    setBestStreak(0)
+    setNewRecord(false)
+    setExercise(newExercise(1))
+    setPhase('answering')
+    clearRoundState()
+    setShowSummary(false)
+  }, [])
 
   return (
     <div className="min-h-screen overflow-y-auto text-white flex flex-col" style={{ background: 'var(--bg)' }}>
@@ -188,12 +238,22 @@ export default function SoloGame({ config, onExit }: Props) {
 
         <div className="flex items-center gap-3 sm:gap-6 font-display text-xs sm:text-sm">
           <div className="flex flex-col items-center">
+            <span className="text-white/30 text-[9px] sm:text-[10px] tracking-widest">PREGUNTA</span>
+            <span className="text-white text-base sm:text-lg tabular-nums">{Math.min(totalCount + 1, config.questionLimit)}/{config.questionLimit}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-white/30 text-[9px] sm:text-[10px] tracking-widest">PUNTAJE</span>
+            <span className="text-[#FFD700] text-base sm:text-lg tabular-nums">{points}</span>
+          </div>
+          <div className="flex flex-col items-center">
             <span className="text-white/30 text-[9px] sm:text-[10px] tracking-widest">CORRECTAS</span>
             <span className="text-[#00E676] text-base sm:text-lg">{correctCount}/{totalCount} <span className="text-white/30 text-xs">({accuracy}%)</span></span>
           </div>
           <div className="flex flex-col items-center">
             <span className="text-white/30 text-[9px] sm:text-[10px] tracking-widest">RACHA</span>
-            <span className="text-[#FFD700] text-base sm:text-lg">{streak} 🔥</span>
+            <span className="text-[#FFD700] text-base sm:text-lg">
+              {streak} 🔥{streak >= 3 && <span className="text-[#FF6B00] text-xs sm:text-sm"> ×{(1 + (streak - 2) * 0.1).toFixed(1)}</span>}
+            </span>
           </div>
           <div className="hidden sm:flex flex-col items-center">
             <span className="text-white/30 text-[10px] tracking-widest">RÉCORD</span>
@@ -338,43 +398,73 @@ export default function SoloGame({ config, onExit }: Props) {
           )}
         </AnimatePresence>
 
-        {/* Exit summary */}
-        <AnimatePresence>
-          {showSummary && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="absolute inset-0 flex items-center justify-center z-30"
-              style={{ background: 'rgba(13,13,26,0.96)' }}
-            >
-              <div className="text-center max-w-sm px-8 py-8 rounded-3xl card-3d" style={{ background: 'var(--surface)' }}>
-                <p className="font-display text-2xl text-[#FFD700] tracking-widest mb-4">¡HASTA PRONTO!</p>
-                <p className="text-white text-lg mb-1">Correctas: <span className="text-[#00E676] font-bold">{correctCount}/{totalCount}</span> ({accuracy}%)</p>
-                <p className="text-white text-lg mb-6">Mejor racha: <span className="text-[#FFD700] font-bold">{bestStreak}</span></p>
-                <div className="flex flex-col gap-3">
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowSummary(false)}
-                    className="btn-3d font-display text-black text-lg px-8 py-2 rounded-xl tracking-widest"
-                    style={{ background: '#FFD700' }}
-                  >
-                    SEGUIR PRACTICANDO
-                  </motion.button>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={persistAndExit}
-                    className="btn-3d font-display text-white text-base px-8 py-2 rounded-xl tracking-widest"
-                    style={{ background: '#16162A' }}
-                  >
-                    VOLVER AL INICIO
-                  </motion.button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
+
+      {/* Arcade-style game-over page */}
+      <AnimatePresence>
+        {showSummary && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-30 flex flex-col items-center justify-center text-center px-4 py-8 gap-4 overflow-y-auto"
+            style={{ background: 'var(--bg)' }}
+          >
+            <motion.p
+              initial={{ y: -30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ type: 'spring', bounce: 0.5 }}
+              className="font-display text-3xl sm:text-5xl text-[#FF3B3B] tracking-widest drop-shadow-[3px_3px_0_#000]"
+            >
+              FIN DE LA PARTIDA
+            </motion.p>
+
+            <motion.div
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.1, type: 'spring', bounce: 0.6 }}
+              className="flex flex-col items-center gap-1"
+            >
+              <span className="font-display text-sm sm:text-base text-white/40 tracking-widest">PUNTAJE</span>
+              <span className="font-display text-5xl sm:text-7xl text-[#FFD700] drop-shadow-[4px_4px_0_#000] tabular-nums">{points}</span>
+            </motion.div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 font-display text-sm sm:text-base">
+              <div className="flex flex-col items-center bg-[#16162A] rounded-xl px-4 py-2 card-3d">
+                <span className="text-white/30 text-[10px] tracking-widest">CORRECTAS</span>
+                <span className="text-[#00E676] text-lg">{correctCount}/{totalCount} <span className="text-white/30 text-xs">({accuracy}%)</span></span>
+              </div>
+              <div className="flex flex-col items-center bg-[#16162A] rounded-xl px-4 py-2 card-3d">
+                <span className="text-white/30 text-[10px] tracking-widest">MEJOR RACHA</span>
+                <span className="text-[#FFD700] text-lg">{bestStreak} 🔥</span>
+              </div>
+            </div>
+
+            <div className="w-full max-w-xs">
+              <Leaderboard questionLimit={config.questionLimit} />
+            </div>
+
+            <div className="flex flex-col gap-3 w-full max-w-xs mt-2">
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={restartSession}
+                className="btn-3d font-display text-black text-lg px-8 py-3 rounded-xl tracking-widest"
+                style={{ background: '#FFD700' }}
+              >
+                REINICIAR
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={persistAndExit}
+                className="btn-3d font-display text-white text-base px-8 py-2 rounded-xl tracking-widest"
+                style={{ background: '#16162A' }}
+              >
+                VOLVER AL INICIO
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

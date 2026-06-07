@@ -52,6 +52,13 @@ vi.mock('../hooks/useBGM', () => ({
 const FIXED_JOKE = { setup: '¿Por qué?', punchline: '¡Porque sí!' }
 vi.mock('../lib/jokes', () => ({ getRandomJoke: () => FIXED_JOKE }))
 
+const submitScore = vi.fn().mockResolvedValue(true)
+vi.mock('../lib/leaderboardApi', () => ({ submitScore: (...args: unknown[]) => submitScore(...args) }))
+
+// Leaderboard fetches on mount and renders async state — irrelevant to
+// SoloGame's own behavior, so render a static placeholder instead.
+vi.mock('./Leaderboard', () => ({ default: () => <div>TOP JUGADORES</div> }))
+
 const makeExercise = (): Exercise => ({
   type: 'mixed',
   fractionA: { numerator: 1, denominator: 2 },
@@ -71,12 +78,14 @@ const config: GameConfig = {
   player2Name: '',
   pointsToWin: 5,
   timerSeconds: 30,
+  questionLimit: 20,
 }
 
 const HIGHSCORE_KEY = 'fracciones:soloHighScore'
 
 beforeEach(() => {
   localStorage.clear()
+  submitScore.mockClear()
   vi.useFakeTimers()
 })
 
@@ -181,14 +190,14 @@ describe('SoloGame', () => {
     expect(screen.queryByText(FIXED_JOKE.setup)).not.toBeInTheDocument()
   })
 
-  it('opens the exit summary and allows resuming practice', () => {
+  it('opens the game-over screen and allows restarting practice', () => {
     render(<SoloGame config={config} onExit={vi.fn()} />)
 
     fireEvent.click(screen.getByText('SALIR'))
-    expect(screen.getByText('¡HASTA PRONTO!')).toBeInTheDocument()
+    expect(screen.getByText('FIN DE LA PARTIDA')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByText('SEGUIR PRACTICANDO'))
-    expect(screen.queryByText('¡HASTA PRONTO!')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('REINICIAR'))
+    expect(screen.queryByText('FIN DE LA PARTIDA')).not.toBeInTheDocument()
   })
 
   it('persists the high score and exits when leaving from the summary', () => {
@@ -203,5 +212,24 @@ describe('SoloGame', () => {
 
     expect(onExit).toHaveBeenCalledTimes(1)
     expect(localStorage.getItem(HIGHSCORE_KEY)).not.toBeNull()
+  })
+
+  it('submits the session score to the leaderboard as soon as the game ends', () => {
+    render(<SoloGame config={config} onExit={vi.fn()} />)
+
+    answerByPosition(CORRECT_OPTION)
+    advanceToNextRound()
+
+    fireEvent.click(screen.getByText('SALIR'))
+
+    expect(submitScore).toHaveBeenCalledWith({ name: 'Jugador', questionLimit: 20, streak: 1, accuracy: 100, score: 10, total: 1 })
+  })
+
+  it('shows the leaderboard in the game-over screen', () => {
+    render(<SoloGame config={config} onExit={vi.fn()} />)
+
+    fireEvent.click(screen.getByText('SALIR'))
+
+    expect(screen.getByText('TOP JUGADORES')).toBeInTheDocument()
   })
 })
