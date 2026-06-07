@@ -7,6 +7,7 @@ const QUESTION_LIMITS = [10, 20, 30, 50]
 interface SubmitBody {
   name?: unknown
   ownerToken?: unknown
+  idempotencyKey?: unknown
   questionLimit?: unknown
   streak?: unknown
   accuracy?: unknown
@@ -33,6 +34,10 @@ function readName(value: unknown): string {
 
 function readToken(value: unknown): string {
   return typeof value === 'string' ? value.trim().slice(0, 64) : ''
+}
+
+function readIdempotencyKey(value: unknown): string {
+  return typeof value === 'string' ? value.trim().slice(0, 80) : ''
 }
 
 // Question-limit configs are a fixed, known set (matches the Home screen
@@ -74,11 +79,20 @@ async function handleSubmit(request: Request, db: D1Database): Promise<Response>
   const name = readName(body.name)
   if (!name) return jsonResponse({ error: 'invalid_name' }, 400)
 
+  const idempotencyKey = readIdempotencyKey(body.idempotencyKey)
+  if (!idempotencyKey) return jsonResponse({ error: 'invalid_idempotency_key' }, 400)
+
   const ownerToken = readToken(body.ownerToken)
   const owner = await findOwner(db, name)
   if (owner !== null && owner !== ownerToken) {
     return jsonResponse({ error: 'name_taken' }, 409)
   }
+
+  const alreadyProcessed = await db
+    .prepare(`SELECT 1 FROM processed_submissions WHERE idempotency_key = ?1`)
+    .bind(idempotencyKey)
+    .first()
+  if (alreadyProcessed) return jsonResponse({ ok: true, duplicate: true })
 
   const questionLimit = readQuestionLimit(body.questionLimit)
   const streak = clampInt(body.streak, 0, 100000)
@@ -107,6 +121,9 @@ async function handleSubmit(request: Request, db: D1Database): Promise<Response>
            updated_at = ?6`
       )
       .bind(name, questionLimit, streak, accuracy, score, updatedAt),
+    db
+      .prepare(`INSERT INTO processed_submissions (idempotency_key, created_at) VALUES (?1, ?2)`)
+      .bind(idempotencyKey, updatedAt),
   ])
 
   return jsonResponse({ ok: true })
