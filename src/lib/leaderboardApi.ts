@@ -8,6 +8,9 @@ export interface ScoreSubmission {
   accuracy: number
   score: number
   total: number
+  // Stable per-session identifier — lets the server ignore a retried/queued
+  // submission instead of double-counting it (see worker/index.ts handleSubmit).
+  idempotencyKey: string
 }
 
 export type NameAvailability = 'available' | 'taken' | 'unknown'
