@@ -1,5 +1,5 @@
 import type { Exercise, ExerciseType, FractionValue } from './types'
-import { compareFractions, simplifyFraction, gcd, fractionToString, normalizeAnswer } from './fractions'
+import { compareFractions, simplifyFraction, addFractions, subtractFractions, gcd, fractionToString, normalizeAnswer } from './fractions'
 
 function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min
@@ -93,8 +93,8 @@ function amplifyDistractors(correct: number, targetDenominator: number): string[
     }
     if (distractors.length >= 5) break
   }
-  // fallback: random numbers in range
-  while (distractors.length < 5) {
+  // fallback: random numbers in range (bounded — small denominators have few candidates)
+  for (let i = 0; i < 30 && distractors.length < 5; i++) {
     const cand = randInt(1, targetDenominator - 1)
     if (!seen.has(cand)) { distractors.push(String(cand)); seen.add(cand) }
   }
@@ -170,6 +170,54 @@ function makeMixed(round: number): Exercise {
   }
 }
 
+// ── Add / Subtract ───────────────────────────────────────────────────────────
+
+function addSubtractDistractors(correct: FractionValue, a: FractionValue, b: FractionValue, isAdd: boolean): string[] {
+  const distractors: string[] = []
+  const seen = new Set([fractionToString(correct)])
+
+  const add = (cand: FractionValue) => {
+    const s = fractionToString(simplifyFraction(cand))
+    if (!seen.has(s)) { distractors.push(s); seen.add(s) }
+  }
+
+  // common mistake: operate numerators and denominators directly
+  add({ numerator: isAdd ? a.numerator + b.numerator : a.numerator - b.numerator, denominator: a.denominator + b.denominator })
+  // common mistake: operate numerators, keep one denominator
+  add({ numerator: isAdd ? a.numerator + b.numerator : a.numerator - b.numerator, denominator: a.denominator })
+  add({ numerator: isAdd ? a.numerator + b.numerator : a.numerator - b.numerator, denominator: b.denominator })
+  // forgetting to simplify
+  add({ numerator: correct.numerator * 2, denominator: correct.denominator * 2 })
+  // off-by-one numerator
+  add({ numerator: correct.numerator + 1, denominator: correct.denominator })
+  if (correct.numerator > 1) add({ numerator: correct.numerator - 1, denominator: correct.denominator })
+
+  // fallback: random nearby fractions (bounded — the candidate space is finite)
+  for (let i = 0; i < 30 && distractors.length < 5; i++) {
+    add(randomFraction(5))
+  }
+  return distractors
+}
+
+function makeAddSubtract(round: number, isAdd: boolean): Exercise {
+  let a = randomFraction(round)
+  let b = randomFraction(round)
+  if (!isAdd && compareFractions(a, b) === '<') [a, b] = [b, a]
+  const result = isAdd ? addFractions(a, b) : subtractFractions(a, b)
+  const simplified = simplifyFraction(result)
+  const answer = fractionToString(simplified)
+  const distractors = addSubtractDistractors(simplified, a, b, isAdd)
+  const options = shuffle(dedupe([answer, ...distractors]).slice(0, 6))
+  return {
+    type: isAdd ? 'add' : 'subtract',
+    fractionA: a,
+    fractionB: b,
+    answer,
+    displayAnswer: answer,
+    options,
+  }
+}
+
 // ── Public API ───────────────────────────────────────────────────────────────
 
 const generators: Record<ExerciseType, (round: number) => Exercise> = {
@@ -177,9 +225,11 @@ const generators: Record<ExerciseType, (round: number) => Exercise> = {
   simplify: makeSimplify,
   amplify: makeAmplify,
   mixed: makeMixed,
+  add: (round) => makeAddSubtract(round, true),
+  subtract: (round) => makeAddSubtract(round, false),
 }
 
-const types: ExerciseType[] = ['compare', 'simplify', 'amplify', 'mixed']
+const types: ExerciseType[] = ['compare', 'simplify', 'amplify', 'mixed', 'add', 'subtract']
 
 export function generateExercise(round: number): Exercise {
   const type = types[randInt(0, types.length - 1)]

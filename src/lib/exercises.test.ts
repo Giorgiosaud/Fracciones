@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { generateExercise, validateAnswer } from './exercises'
+import { addFractions, subtractFractions, simplifyFraction, fractionToString } from './fractions'
 
 describe('generateExercise', () => {
   it('returns an exercise with a type and answer', () => {
@@ -31,6 +32,46 @@ describe('generateExercise', () => {
         break
       }
     }
+  })
+})
+
+describe.each(['add', 'subtract'] as const)('%s exercise', (type) => {
+  function findExercise() {
+    for (let i = 0; i < 200; i++) {
+      const ex = generateExercise(1)
+      if (ex.type === type) return ex
+    }
+    throw new Error(`no ${type} exercise generated in 200 tries`)
+  }
+
+  it('has fractionA, fractionB and a fraction-shaped answer', () => {
+    const ex = findExercise()
+    expect(ex.fractionA).toBeDefined()
+    expect(ex.fractionB).toBeDefined()
+    expect(ex.answer).toMatch(/^-?\d+\/\d+$/)
+    expect(ex.displayAnswer).toBe(ex.answer)
+  })
+
+  it('answer matches the simplified result of the operation', () => {
+    const ex = findExercise()
+    const expected =
+      type === 'add'
+        ? addFractions(ex.fractionA, ex.fractionB!)
+        : subtractFractions(ex.fractionA, ex.fractionB!)
+    expect(ex.answer).toBe(fractionToString(simplifyFraction(expected)))
+  })
+
+  it('options contain the correct answer exactly once and at least 2 options', () => {
+    const ex = findExercise()
+    expect(ex.options.filter((o) => o === ex.answer)).toHaveLength(1)
+    expect(ex.options.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('validateAnswer accepts the correct answer and rejects a different one', () => {
+    const ex = findExercise()
+    expect(validateAnswer(ex, ex.answer as string)).toBe(true)
+    const wrong = ex.options.find((o) => o !== ex.answer)
+    if (wrong) expect(validateAnswer(ex, wrong)).toBe(false)
   })
 })
 

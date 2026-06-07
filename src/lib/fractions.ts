@@ -14,6 +14,16 @@ export function compareFractions(a: FractionValue, b: FractionValue): '>' | '<' 
   return '='
 }
 
+export function addFractions(a: FractionValue, b: FractionValue): FractionValue {
+  const fr = new Fraction(a.numerator, a.denominator).add(new Fraction(b.numerator, b.denominator))
+  return { numerator: Number(fr.n) * Number(fr.s), denominator: Number(fr.d) }
+}
+
+export function subtractFractions(a: FractionValue, b: FractionValue): FractionValue {
+  const fr = new Fraction(a.numerator, a.denominator).sub(new Fraction(b.numerator, b.denominator))
+  return { numerator: Number(fr.n) * Number(fr.s), denominator: Number(fr.d) }
+}
+
 export function simplifyFraction(f: FractionValue): FractionValue {
   const fr = new Fraction(f.numerator, f.denominator)
   return { numerator: Number(fr.n) * Number(fr.s), denominator: Number(fr.d) }

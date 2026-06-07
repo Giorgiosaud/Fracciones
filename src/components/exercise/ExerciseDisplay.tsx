@@ -45,6 +45,17 @@ export function renderExercise(ex: Exercise, selectedOpt: string | null = null) 
       </div>
     )
   }
+  if (ex.type === 'add' || ex.type === 'subtract') {
+    return (
+      <div className="flex items-center gap-2 sm:gap-3 md:gap-4 text-2xl sm:text-3xl md:text-4xl font-black">
+        <FractionDisplay frac={ex.fractionA} />
+        <span className="text-white/40">{ex.type === 'add' ? '+' : '−'}</span>
+        <FractionDisplay frac={ex.fractionB!} />
+        <span className="text-white/40">=</span>
+        <span className="text-[#FFD700] text-3xl sm:text-4xl md:text-5xl">?</span>
+      </div>
+    )
+  }
   return (
     <div className="flex items-center gap-2 sm:gap-3 md:gap-4 text-2xl sm:text-3xl md:text-4xl font-black">
       <FractionDisplay frac={ex.fractionA} />
@@ -58,6 +69,8 @@ export function exerciseLabel(ex: Exercise) {
   if (ex.type === 'compare') return '¿Mayor >, menor < o igual =?'
   if (ex.type === 'simplify') return 'Simplifica la fracción'
   if (ex.type === 'amplify') return '¿Cuál es el numerador que falta?'
+  if (ex.type === 'add') return 'Suma las fracciones'
+  if (ex.type === 'subtract') return 'Resta las fracciones'
   return 'Convierte a número mixto'
 }
 
@@ -163,6 +176,12 @@ export function buildHint(ex: Exercise): string {
     const { numerator: n, denominator: d } = ex.fractionA
     const factor = ex.targetDenominator! / d
     return `Pista: ${d} × ${factor} = ${ex.targetDenominator}, así que el numerador es ${n} × ${factor}`
+  }
+  if (ex.type === 'add' || ex.type === 'subtract') {
+    const a = ex.fractionA
+    const b = ex.fractionB!
+    const op = ex.type === 'add' ? '+' : '−'
+    return `Pista: busca un denominador común, transforma ambas fracciones y luego ${ex.type === 'add' ? 'suma' : 'resta'} los numeradores: ${a.numerator}/${a.denominator} ${op} ${b.numerator}/${b.denominator}`
   }
   // mixed
   const { numerator: n, denominator: d } = ex.fractionA

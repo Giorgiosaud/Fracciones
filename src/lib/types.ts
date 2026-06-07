@@ -19,7 +19,7 @@ export interface SoloHighScore {
   updatedAt: string      // ISO date
 }
 
-export type ExerciseType = 'compare' | 'simplify' | 'amplify' | 'mixed'
+export type ExerciseType = 'compare' | 'simplify' | 'amplify' | 'mixed' | 'add' | 'subtract'
 
 export interface FractionValue {
   numerator: number
