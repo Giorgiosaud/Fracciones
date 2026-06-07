@@ -222,7 +222,35 @@ describe('SoloGame', () => {
 
     fireEvent.click(screen.getByText('SALIR'))
 
-    expect(submitScore).toHaveBeenCalledWith({ name: 'Jugador', questionLimit: 20, streak: 1, accuracy: 100, score: 10, total: 1 })
+    // timerSeconds: 30 → timer multiplier ×1.3, streak 1 → no streak bonus: round(10 × 1.3) = 13
+    expect(submitScore).toHaveBeenCalledWith({ name: 'Jugador', questionLimit: 20, streak: 1, accuracy: 100, score: 13, total: 1 })
+  })
+
+  it('rewards harder (shorter) timer settings with a higher score multiplier', () => {
+    const harderConfig: GameConfig = { ...config, timerSeconds: 10 }
+    render(<SoloGame config={harderConfig} onExit={vi.fn()} />)
+
+    answerByPosition(CORRECT_OPTION)
+    advanceToNextRound()
+
+    fireEvent.click(screen.getByText('SALIR'))
+
+    // timerSeconds: 10 → timer multiplier ×1.5, streak 1 → no streak bonus: round(10 × 1.5) = 15
+    expect(submitScore).toHaveBeenCalledWith({ name: 'Jugador', questionLimit: 20, streak: 1, accuracy: 100, score: 15, total: 1 })
+  })
+
+  it('shows the live score and streak multiplier badge in the header', () => {
+    render(<SoloGame config={config} onExit={vi.fn()} />)
+
+    answerByPosition(CORRECT_OPTION)
+    advanceToNextRound()
+    answerByPosition(CORRECT_OPTION)
+    advanceToNextRound()
+    // Round 3 triggers a joke screen — dismiss it before answering again.
+    fireEvent.click(screen.getByText('¡SIGUIENTE!'))
+    answerByPosition(CORRECT_OPTION)
+
+    expect(screen.getByText('×1.1', { exact: false })).toBeInTheDocument()
   })
 
   it('shows the leaderboard in the game-over screen', () => {

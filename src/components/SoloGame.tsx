@@ -25,11 +25,17 @@ const newExercise = (r: number) => generateExercise(Math.ceil(r / 3))
 
 const BASE_POINTS = 10
 
+// Rewards harder timer settings — baseline ×1.0 at 60s, +0.1 per 10s less.
+function timerMultiplier(timerSeconds: number) {
+  return 1 + ((60 - timerSeconds) / 10) * 0.1
+}
+
 // Same streak-reward curve as VS mode's damage multiplier (Game.tsx calcDamage)
-// — a streak of 3+ scores progressively more points per correct answer.
-function calcPoints(streakAfterAnswer: number) {
-  const multiplier = streakAfterAnswer >= 3 ? 1 + (streakAfterAnswer - 2) * 0.1 : 1
-  return Math.round(BASE_POINTS * multiplier)
+// — a streak of 3+ scores progressively more points per correct answer —
+// scaled further by how little time the player gave themselves per question.
+function calcPoints(streakAfterAnswer: number, timerSeconds: number) {
+  const streakBonus = streakAfterAnswer >= 3 ? 1 + (streakAfterAnswer - 2) * 0.1 : 1
+  return Math.round(BASE_POINTS * streakBonus * timerMultiplier(timerSeconds))
 }
 
 export default function SoloGame({ config, onExit }: Props) {
@@ -105,7 +111,7 @@ export default function SoloGame({ config, onExit }: Props) {
       const nextStreak = streak + 1
       setCorrectCount(c => c + 1)
       setStreak(nextStreak)
-      setPoints(p => p + calcPoints(nextStreak))
+      setPoints(p => p + calcPoints(nextStreak, config.timerSeconds))
       setFeedback('correct')
       sfx.playCorrect()
       if (nextStreak >= 3) sfx.playStreakHit(nextStreak)
@@ -127,7 +133,7 @@ export default function SoloGame({ config, onExit }: Props) {
       fireFlash('rgba(255,59,59,0.35)')
     }
     setRevealCorrect(true)
-  }, [streak, bestStreak, record, sfx, bgm, fireFlash, fireConfetti])
+  }, [streak, bestStreak, record, sfx, bgm, fireFlash, fireConfetti, config.timerSeconds])
 
   const handleSelect = useCallback((opt: string) => {
     if (phase !== 'answering' || feedback || selectedOption) return
