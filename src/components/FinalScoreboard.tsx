@@ -47,7 +47,7 @@ function WinBoard({ records, onClear }: { records: WinRecord[]; onClear: () => v
   const medals = ['🥇', '🥈', '🥉']
   return (
     <div
-      className="card-3d rounded-2xl p-6 w-72"
+      className="card-3d rounded-2xl p-4 sm:p-6 w-full max-w-xs sm:w-72"
       style={{ background: 'var(--surface)' }}
     >
       <div className="flex justify-between items-center mb-4">
@@ -98,7 +98,7 @@ export default function FinalScoreboard({ scores, config, winner, onReplay }: Pr
   }
 
   return (
-    <div className="min-h-screen text-white flex flex-col items-center justify-center gap-8 relative overflow-hidden p-8" style={{ background: 'var(--bg)' }}>
+    <div className="min-h-screen text-white flex flex-col items-center justify-center gap-4 sm:gap-6 md:gap-8 relative overflow-hidden p-4 sm:p-6 md:p-8 overflow-y-auto" style={{ background: 'var(--bg)' }}>
       <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
 
       <motion.div
@@ -107,10 +107,10 @@ export default function FinalScoreboard({ scores, config, winner, onReplay }: Pr
         transition={{ type: 'spring', bounce: 0.5 }}
         className="text-center z-10"
       >
-        <div className="text-6xl mb-2">🏆</div>
-        <div className="font-display text-2xl text-white/40 tracking-widest mb-1">¡GANADOR!</div>
+        <div className="text-4xl sm:text-5xl md:text-6xl mb-2">🏆</div>
+        <div className="font-display text-lg sm:text-xl md:text-2xl text-white/40 tracking-widest mb-1">¡GANADOR!</div>
         <div
-          className="font-display text-7xl drop-shadow-[4px_4px_0_#000]"
+          className="font-display text-4xl sm:text-5xl md:text-7xl drop-shadow-[4px_4px_0_#000]"
           style={{ color: winnerColor, textShadow: `0 0 30px ${winnerColor}` }}
         >
           {winnerName}
@@ -121,18 +121,18 @@ export default function FinalScoreboard({ scores, config, winner, onReplay }: Pr
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="flex gap-12 z-10 card-3d rounded-2xl px-10 py-6"
+        className="flex gap-6 sm:gap-8 md:gap-12 z-10 card-3d rounded-2xl px-6 sm:px-8 md:px-10 py-4 sm:py-5 md:py-6"
         style={{ background: 'var(--surface)' }}
       >
         <div className="text-center">
-          <div className="font-display text-white/40 text-sm tracking-widest mb-1">{config.player1Name}</div>
-          <div className="font-display text-6xl drop-shadow-[2px_2px_0_#000]" style={{ color: '#1D9BF0', textShadow: '0 0 12px #1D9BF0' }}>{scores.q}</div>
+          <div className="font-display text-white/40 text-xs sm:text-sm tracking-widest mb-1">{config.player1Name}</div>
+          <div className="font-display text-3xl sm:text-4xl md:text-6xl drop-shadow-[2px_2px_0_#000]" style={{ color: '#1D9BF0', textShadow: '0 0 12px #1D9BF0' }}>{scores.q}</div>
           <div className="font-display text-white/20 text-xs tracking-widest mt-1">PUNTOS</div>
         </div>
-        <div className="font-display text-[#FFD700] text-4xl self-center drop-shadow-[2px_2px_0_#000]">VS</div>
+        <div className="font-display text-[#FFD700] text-2xl sm:text-3xl md:text-4xl self-center drop-shadow-[2px_2px_0_#000]">VS</div>
         <div className="text-center">
-          <div className="font-display text-white/40 text-sm tracking-widest mb-1">{config.player2Name}</div>
-          <div className="font-display text-6xl drop-shadow-[2px_2px_0_#000]" style={{ color: '#FF3B3B', textShadow: '0 0 12px #FF3B3B' }}>{scores.p}</div>
+          <div className="font-display text-white/40 text-xs sm:text-sm tracking-widest mb-1">{config.player2Name}</div>
+          <div className="font-display text-3xl sm:text-4xl md:text-6xl drop-shadow-[2px_2px_0_#000]" style={{ color: '#FF3B3B', textShadow: '0 0 12px #FF3B3B' }}>{scores.p}</div>
           <div className="font-display text-white/20 text-xs tracking-widest mt-1">PUNTOS</div>
         </div>
       </motion.div>
@@ -141,7 +141,7 @@ export default function FinalScoreboard({ scores, config, winner, onReplay }: Pr
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="z-10"
+        className="z-10 w-full max-w-xs flex justify-center"
       >
         <WinBoard records={records} onClear={handleClear} />
       </motion.div>
@@ -153,7 +153,7 @@ export default function FinalScoreboard({ scores, config, winner, onReplay }: Pr
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={onReplay}
-        className="z-10 btn-3d font-display text-black text-2xl px-12 py-4 rounded-2xl tracking-widest"
+        className="z-10 btn-3d font-display text-black text-lg sm:text-xl md:text-2xl px-8 sm:px-10 md:px-12 py-3 sm:py-4 rounded-2xl tracking-widest"
         style={{ background: '#FFD700' }}
       >
         ¡JUGAR DE NUEVO!

@@ -46,25 +46,25 @@ function renderExercise(ex: Exercise, selectedOpt: string | null = null) {
     const symbol = selectedOpt ?? '?'
     const symbolColor = selectedOpt ? 'text-[#FFD700]' : 'text-white/40'
     return (
-      <div className="flex items-center gap-6 text-4xl font-black">
+      <div className="flex items-center gap-3 sm:gap-5 md:gap-6 text-2xl sm:text-3xl md:text-4xl font-black">
         <FractionDisplay frac={ex.fractionA} />
-        <span className={`text-5xl w-12 text-center transition-all ${symbolColor}`}>{symbol}</span>
+        <span className={`text-3xl sm:text-4xl md:text-5xl w-8 sm:w-10 md:w-12 text-center transition-all ${symbolColor}`}>{symbol}</span>
         <FractionDisplay frac={ex.fractionB!} />
       </div>
     )
   }
   if (ex.type === 'simplify') {
     return (
-      <div className="flex items-center gap-4 text-4xl font-black">
+      <div className="flex items-center gap-2 sm:gap-3 md:gap-4 text-2xl sm:text-3xl md:text-4xl font-black">
         <FractionDisplay frac={ex.fractionA} />
         <span className="text-white/40">=</span>
-        <span className="text-[#FFD700] text-5xl">?</span>
+        <span className="text-[#FFD700] text-3xl sm:text-4xl md:text-5xl">?</span>
       </div>
     )
   }
   if (ex.type === 'amplify') {
     return (
-      <div className="flex items-center gap-4 text-4xl font-black">
+      <div className="flex items-center gap-2 sm:gap-3 md:gap-4 text-2xl sm:text-3xl md:text-4xl font-black">
         <FractionDisplay frac={ex.fractionA} />
         <span className="text-white/40">=</span>
         <div className="inline-flex flex-col items-center leading-none">
@@ -76,10 +76,10 @@ function renderExercise(ex: Exercise, selectedOpt: string | null = null) {
     )
   }
   return (
-    <div className="flex items-center gap-4 text-4xl font-black">
+    <div className="flex items-center gap-2 sm:gap-3 md:gap-4 text-2xl sm:text-3xl md:text-4xl font-black">
       <FractionDisplay frac={ex.fractionA} />
       <span className="text-white/40">=</span>
-      <span className="text-[#FFD700] text-3xl">? y ?/?</span>
+      <span className="text-[#FFD700] text-2xl sm:text-3xl">? y ?/?</span>
     </div>
   )
 }
@@ -141,7 +141,7 @@ function OptionGrid({ options, locked, onSelect, wrongSelections, correctAnswer,
   const canClick = locked && !revealCorrect
 
   return (
-    <div className={`grid gap-2 grid-cols-3 w-full max-w-sm transition-opacity ${!locked ? 'opacity-40' : ''}`}>
+    <div className={`grid gap-1.5 sm:gap-2 grid-cols-3 w-full max-w-xs sm:max-w-sm transition-opacity ${!locked ? 'opacity-40' : ''}`}>
       {options.map((opt, i) => {
         const isWrong = wrongSelections.includes(opt)
         const isCorrect = revealCorrect && opt === correctAnswer
@@ -166,7 +166,7 @@ function OptionGrid({ options, locked, onSelect, wrongSelections, correctAnswer,
             whileTap={canClick && !isWrong ? { scale: 0.93, x: 2, y: 2 } : {}}
             onClick={() => canClick && !isWrong && onSelect(opt)}
             style={style}
-            className={`rounded-xl px-3 py-3 flex items-center justify-center min-h-[56px] transition-colors font-display ${extraCls}`}
+            className={`rounded-xl px-2 sm:px-3 py-2 sm:py-3 flex items-center justify-center min-h-[44px] sm:min-h-[56px] transition-colors font-display ${extraCls}`}
             title={locked ? `Opción ${i + 1}` : ''}
           >
             <OptionLabel text={opt} />
@@ -540,7 +540,7 @@ export default function Game({ config, onGameEnd }: Props) {
           color: isLocked ? '#FFD700' : color,
           opacity: inComeback && comebackPlayer !== pk ? 0.3 : 1,
         }}
-        className="w-10 h-10 rounded-xl flex items-center justify-center font-display text-xl select-none flex-shrink-0"
+        className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-display text-base sm:text-xl select-none flex-shrink-0"
       >
         {key}
       </motion.div>
@@ -557,13 +557,13 @@ export default function Game({ config, onGameEnd }: Props) {
         visible={showComebackEntrance}
       />
       {/* Header: key badge | health bar | round | health bar | key badge */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10 flex-shrink-0" style={{ background: '#0a0a15' }}>
+      <div className="flex items-center gap-1.5 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 border-b border-white/10 flex-shrink-0 overflow-x-auto" style={{ background: '#0a0a15' }}>
         {keyBadge('Q')}
         <HealthBar hp={hp.q} maxHp={MAX_HP} side="left" name={p1} streak={streak.q} shaking={shakingQ} />
-        <div className="flex flex-col items-center gap-0.5 px-3 flex-shrink-0">
-          <div className="font-display text-[10px] text-white/30 tracking-widest">RONDA</div>
-          <div className="font-display text-3xl text-[#FFD700] drop-shadow-[2px_2px_0_#000] leading-none">{round}</div>
-          <div className="flex gap-2 font-display text-base leading-none mt-0.5">
+        <div className="flex flex-col items-center gap-0.5 px-1 sm:px-3 flex-shrink-0">
+          <div className="font-display text-[8px] sm:text-[10px] text-white/30 tracking-widest">RONDA</div>
+          <div className="font-display text-xl sm:text-3xl text-[#FFD700] drop-shadow-[2px_2px_0_#000] leading-none">{round}</div>
+          <div className="flex gap-1.5 sm:gap-2 font-display text-sm sm:text-base leading-none mt-0.5">
             <span style={{ color: '#1D9BF0', textShadow: '0 0 6px #1D9BF0' }}>{scores.q}</span>
             <span className="text-white/20">-</span>
             <span style={{ color: '#FF3B3B', textShadow: '0 0 6px #FF3B3B' }}>{scores.p}</span>
@@ -576,7 +576,7 @@ export default function Game({ config, onGameEnd }: Props) {
           <motion.button
             whileTap={{ scale: 0.88 }}
             onClick={bgm.toggleMute}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-base"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-sm sm:text-base"
             style={{ background: '#1a1a2e', border: '2px solid #333', boxShadow: '2px 2px 0 #000' }}
             title={bgm.muted ? 'Activar música' : 'Silenciar música'}
           >
@@ -589,7 +589,7 @@ export default function Game({ config, onGameEnd }: Props) {
             step={0.05}
             value={bgm.volume}
             onChange={e => bgm.setVolume(parseFloat(e.target.value))}
-            className="w-8 accent-[#FFD700]"
+            className="w-7 sm:w-8 accent-[#FFD700] hidden sm:block"
             style={{ writingMode: 'vertical-lr', direction: 'rtl', height: '40px', cursor: 'pointer' }}
             title="Volumen"
           />
@@ -621,18 +621,18 @@ export default function Game({ config, onGameEnd }: Props) {
       </AnimatePresence>
 
       {/* Exercise area */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 px-4 relative min-h-0">
+      <div className="flex-1 flex flex-col items-center justify-center gap-2 sm:gap-4 px-2 sm:px-4 relative min-h-0">
         <AnimatePresence mode="wait">
           <motion.div
             key={`${round}-${comebackCount}`}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="flex flex-col items-center gap-3 w-full max-w-2xl"
+            className="flex flex-col items-center gap-2 sm:gap-3 w-full max-w-2xl"
           >
             <p className="font-display text-white/40 text-xs tracking-widest">{exerciseLabel(exercise)}</p>
             <div
-              className="rounded-3xl px-10 py-6"
+              className="rounded-3xl px-5 sm:px-7 md:px-10 py-4 sm:py-5 md:py-6"
               style={{ background: 'var(--surface)', border: '3px solid #000', boxShadow: '6px 6px 0 #000' }}
             >
               {renderExercise(exercise, exercise.type === 'compare' ? selectedOption : null)}
@@ -689,7 +689,7 @@ export default function Game({ config, onGameEnd }: Props) {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.5, opacity: 0 }}
               style={{ color: feedback === 'correct' ? '#00E676' : '#FF3B3B', textShadow: `0 0 40px ${feedback === 'correct' ? '#00E676' : '#FF3B3B'}` }}
-              className="absolute font-display text-9xl pointer-events-none drop-shadow-[4px_4px_0_#000]"
+              className="absolute font-display text-6xl sm:text-7xl md:text-9xl pointer-events-none drop-shadow-[4px_4px_0_#000]"
             >
               {feedback === 'correct' ? '✓' : '✗'}
             </motion.div>
